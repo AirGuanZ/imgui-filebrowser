@@ -116,6 +116,7 @@ inline void ImGui::FileBrowser::SetTitle(std::string title)
 inline void ImGui::FileBrowser::Open()
 {
     ClearSelected();
+	statusStr_ = std::string();
     openFlag_ = true;
     closeFlag_ = false;
 }
@@ -123,6 +124,7 @@ inline void ImGui::FileBrowser::Open()
 inline void ImGui::FileBrowser::Close()
 {
     ClearSelected();
+	statusStr_ = std::string();
     closeFlag_ = true;
     openFlag_ = false;
 }
