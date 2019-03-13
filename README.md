@@ -13,7 +13,7 @@ imgui-filebrowser is header-only and must be included after imgui.h:
 #include <imfilebrowser.h>
 ```
 
-It's hard for me to design interface for a stateless file browser. Thus, instead of creating a file dialog by a immediate function call, you need to create a `ImGui::FileBrowser` instance, open it with member function `Open()`, and call `Display()` in each frame. Here is a simple example:
+Instead of creating a file dialog by a immediate function call, you need to create a `ImGui::FileBrowser` instance, open it with member function `Open()`, and call `Display()` in each frame. Here is a simple example:
 
 ```cpp
 #include <imgui.h>
