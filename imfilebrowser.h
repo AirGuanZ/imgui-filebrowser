@@ -201,6 +201,7 @@ inline void ImGui::FileBrowser::Display()
     // browse files in a child window
 
     float reserveHeight = GetItemsLineHeightWithSpacing();
+    std::filesystem::path newPwd; bool setNewPwd = false;
     if(!(flags_ & ImGuiFileBrowserFlags_SelectDirectory) && (flags_ & ImGuiFileBrowserFlags_EnterNewFilename))
         reserveHeight += GetItemsLineHeightWithSpacing();
     {
@@ -231,9 +232,15 @@ inline void ImGui::FileBrowser::Display()
             }
 
             if(IsItemClicked(0) && IsMouseDoubleClicked(0) && rsc.isDir)
-                SetPwd((rsc.name != "..") ? (pwd_ / rsc.name) : pwd_.parent_path());
+            {
+                setNewPwd = true;
+                newPwd = (rsc.name != "..") ? (pwd_ / rsc.name) : pwd_.parent_path();
+            }
         }
     }
+
+    if(setNewPwd)
+        SetPwd(newPwd);
 
     if(!(flags_ & ImGuiFileBrowserFlags_SelectDirectory) && (flags_ & ImGuiFileBrowserFlags_EnterNewFilename))
     {
