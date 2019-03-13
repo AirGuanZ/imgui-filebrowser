@@ -12,11 +12,11 @@ using ImGuiFileBrowserFlags = int;
 
 enum ImGuiFileBrowserFlags_
 {
-    ImGuiFileBrowserFlags_SelectDirectory    = 1 << 1,
-    ImGuiFileBrowserFlags_EnterNewFilename   = 1 << 2,
-    ImGuiFileBrowserFlags_NoModal            = 1 << 3,
-    ImGuiFileBrowserFlags_NoTitleBar         = 1 << 4,
-    ImGuiFileBrowserFlags_NoStatusBar        = 1 << 5,
+    ImGuiFileBrowserFlags_SelectDirectory    = 1 << 0, // select directory instead of regular file
+    ImGuiFileBrowserFlags_EnterNewFilename   = 1 << 1, // allow user to enter new filename when selecting regular file
+    ImGuiFileBrowserFlags_NoModal            = 1 << 2, // file browsing window is modal by default. specify this to use a popup window
+    ImGuiFileBrowserFlags_NoTitleBar         = 1 << 3, // hide window title bar
+    ImGuiFileBrowserFlags_NoStatusBar        = 1 << 4, // hide status bar at the bottom of browsing window
 };
 
 namespace ImGui
@@ -25,36 +25,34 @@ namespace ImGui
     {
     public:
 
-        // 默认将pwd设置为当前工作目录，可通过SetPwd修改
+		// pwd is set to current working directory by default
         explicit FileBrowser(ImGuiFileBrowserFlags flags = 0);
 
-        // 设置窗口标题文字，以utf-8编码
+		// set the window title text
         void SetTitle(std::string title);
 
-        // 打开文件窗口
+		// open the browsing window
         void Open();
 
-        // 关闭文件窗口
+		// close the browsing window
         void Close();
 
-        // 是否处于打开状态
+		// the browsing window is opened or not
         bool IsOpened() const noexcept;
 
-        // 显示文件窗口
-        // 当遭遇非法访问等异常时，当前路径会被自动定向到程序工作目录，且上一个错误会被显示窗口底部的状态栏中。
-        // 若定向到程序工作目录时再次发生异常，则该异常会被原样抛出。即使如此，imgui的状态始终是一致的。
+		// display the browsing window if opened
         void Display();
 
-        // 是否选中了某个文件并已确认
+		// returns true when there is a selected filename and the "ok" button was clicked
         bool HasSelected() const noexcept;
 
-        // 设置当前显示的路径
+		// set current browsing directory
         bool SetPwd(const std::filesystem::path &pwd = std::filesystem::current_path());
 
-        // 取得当前选择的文件路径，仅在IsSelected返回true时有意义
+		// returns selected filename. make sense only when HasSelected returns true
         std::string GetSelected() const;
 
-        // 清除当前选择的文件
+		// set selected filename to empty
         void ClearSelected();
 
     private:
@@ -143,7 +141,7 @@ inline void ImGui::FileBrowser::Display()
         OpenPopup(openLabel_.c_str());
     isOpened_ = false;
 
-    // 尝试打开窗口
+    // open the popup window
 
     if(openFlag_ && (flags_ & ImGuiFileBrowserFlags_NoModal))
         SetNextWindowSize(ImVec2(700, 450));
@@ -159,7 +157,7 @@ inline void ImGui::FileBrowser::Display()
     isOpened_ = true;
     ScopeGuard endPopup([] { EndPopup(); });
 
-    // 显示路径中的一系列section
+    // display elements in pwd
 
     int secIdx = 0, newPwdLastSecIdx = -1;
     for(auto &sec : pwd_)
@@ -197,7 +195,7 @@ inline void ImGui::FileBrowser::Display()
         SetPwd(newPwd);
     }
 
-    // 显示文件列表的子窗口
+    // browse files in a child window
 
     float reserveHeight = GetItemsLineHeightWithSpacing();
     if(!(flags_ & ImGuiFileBrowserFlags_SelectDirectory) && (flags_ & ImGuiFileBrowserFlags_EnterNewFilename))
@@ -220,7 +218,7 @@ inline void ImGui::FileBrowser::Display()
                 else if(rsc.name != "..")
                 {
                     if((rsc.isDir && (flags_ & ImGuiFileBrowserFlags_SelectDirectory)) ||
-                        (!rsc.isDir && !(flags_ & ImGuiFileBrowserFlags_SelectDirectory)))
+                       (!rsc.isDir && !(flags_ & ImGuiFileBrowserFlags_SelectDirectory)))
                     {
                         selectedFilename_ = rsc.name;
                         if(!(flags_ & ImGuiFileBrowserFlags_SelectDirectory))
@@ -233,10 +231,6 @@ inline void ImGui::FileBrowser::Display()
                 SetPwd((rsc.name != "..") ? (pwd_ / rsc.name) : pwd_.parent_path());
         }
     }
-
-    // 使用逻辑：
-    //  选择文件时，input slot的内容始终是和selectedFilename一致的
-    //  选择目录时，input slot无意义且不显示，只有在没有selectedFilename时才能ok，其他情况下都是open selected并进入其中
 
     if(!(flags_ & ImGuiFileBrowserFlags_SelectDirectory) && (flags_ & ImGuiFileBrowserFlags_EnterNewFilename))
     {
