@@ -17,6 +17,7 @@ enum ImGuiFileBrowserFlags_
     ImGuiFileBrowserFlags_NoModal            = 1 << 2, // file browsing window is modal by default. specify this to use a popup window
     ImGuiFileBrowserFlags_NoTitleBar         = 1 << 3, // hide window title bar
     ImGuiFileBrowserFlags_NoStatusBar        = 1 << 4, // hide status bar at the bottom of browsing window
+    ImGuiFileBrowserFlags_CloseOnEsc         = 1 << 5, // close file browser when pressing 'ESC'
 };
 
 namespace ImGui
@@ -276,7 +277,9 @@ inline void ImGui::FileBrowser::Display()
 
     SameLine();
 
-    if(Button("cancel") || closeFlag_)
+    int escIdx = GetIO().KeyMap[ImGuiKey_Escape];
+    if(Button("cancel") || closeFlag_ ||
+        ((flags_ & ImGuiFileBrowserFlags_CloseOnEsc) && IsWindowFocused() && escIdx >= 0 && IsKeyPressed(escIdx)))
         CloseCurrentPopup();
 }
 
