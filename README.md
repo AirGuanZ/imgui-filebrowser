@@ -39,7 +39,7 @@ int main()
         
         if(fileDialog.HasSelected())
         {
-            std::cout << "Selected filename" << fileDialog.GetSelected() << std::endl;
+            std::cout << "Selected filename" << fileDialog.GetSelected().string() << std::endl;
             fileDialog.ClearSelected();
         }
         

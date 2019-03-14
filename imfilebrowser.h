@@ -3,6 +3,7 @@
 #include <array>
 #include <filesystem>
 #include <string>
+#include <string_view>
 
 #ifndef IMGUI_VERSION
 #   error "include imgui.h before this header"
@@ -51,7 +52,7 @@ namespace ImGui
         bool SetPwd(const std::filesystem::path &pwd = std::filesystem::current_path());
 
 		// returns selected filename. make sense only when HasSelected returns true
-        std::string GetSelected() const;
+        std::filesystem::path GetSelected() const;
 
 		// set selected filename to empty
         void ClearSelected();
@@ -155,8 +156,11 @@ inline void ImGui::FileBrowser::Display()
         if(!BeginPopup(openLabel_.c_str()))
             return;
     }
-    else if(!BeginPopupModal(openLabel_.c_str(), nullptr, flags_ & ImGuiFileBrowserFlags_NoTitleBar ? ImGuiWindowFlags_NoTitleBar : 0))
+    else if(!BeginPopupModal(openLabel_.c_str(), nullptr,
+        flags_ & ImGuiFileBrowserFlags_NoTitleBar ? ImGuiWindowFlags_NoTitleBar : 0))
+    {
         return;
+    }
     isOpened_ = true;
     ScopeGuard endPopup([] { EndPopup(); });
 
@@ -205,7 +209,7 @@ inline void ImGui::FileBrowser::Display()
     if(!(flags_ & ImGuiFileBrowserFlags_SelectDirectory) && (flags_ & ImGuiFileBrowserFlags_EnterNewFilename))
         reserveHeight += GetItemsLineHeightWithSpacing();
     {
-        BeginChild("child", ImVec2(0, -reserveHeight), true,
+        BeginChild("ch", ImVec2(0, -reserveHeight), true,
             (flags_ & ImGuiFileBrowserFlags_NoModal) ? ImGuiWindowFlags_AlwaysHorizontalScrollbar : 0);
         ScopeGuard endChild([] { EndChild(); });
 
@@ -253,13 +257,6 @@ inline void ImGui::FileBrowser::Display()
         PopItemWidth();
     }
 
-    if(statusStr_.empty() || (flags_ & ImGuiFileBrowserFlags_NoStatusBar))
-        NewLine();
-    else
-        Text("%s", statusStr_.c_str());
-
-    SameLine(GetWindowWidth() - 140);
-
     if(!(flags_ & ImGuiFileBrowserFlags_SelectDirectory))
     {
         if(Button(" ok ") && !selectedFilename_.empty())
@@ -288,6 +285,12 @@ inline void ImGui::FileBrowser::Display()
     if(Button("cancel") || closeFlag_ ||
         ((flags_ & ImGuiFileBrowserFlags_CloseOnEsc) && IsWindowFocused() && escIdx >= 0 && IsKeyPressed(escIdx)))
         CloseCurrentPopup();
+
+    if(!statusStr_.empty() && !(flags_ & ImGuiFileBrowserFlags_NoStatusBar))
+    {
+        SameLine();
+        Text("%s", statusStr_.c_str());
+    }
 }
 
 inline bool ImGui::FileBrowser::HasSelected() const noexcept
@@ -315,9 +318,9 @@ inline bool ImGui::FileBrowser::SetPwd(const std::filesystem::path &pwd)
     return false;
 }
 
-inline std::string ImGui::FileBrowser::GetSelected() const
+inline std::filesystem::path ImGui::FileBrowser::GetSelected() const
 {
-    return (pwd_ / selectedFilename_).string();
+    return pwd_ / selectedFilename_;
 }
 
 inline void ImGui::FileBrowser::ClearSelected()
@@ -346,7 +349,7 @@ inline void ImGui::FileBrowser::SetPwdUncatched(const std::filesystem::path &pwd
         if(rcd.name.empty())
             continue;
 
-        rcd.showName = (rcd.isDir ? "[D] " : "[F] ") + rcd.name;
+        rcd.showName = (rcd.isDir ? "[D] " : "[F] ") + p.path().filename().u8string();
         fileRecords_.push_back(rcd);
     }
 
