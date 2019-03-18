@@ -26,34 +26,34 @@ namespace ImGui
     {
     public:
 
-		// pwd is set to current working directory by default
+        // pwd is set to current working directory by default
         explicit FileBrowser(ImGuiFileBrowserFlags flags = 0);
 
-		// set the window title text
+        // set the window title text
         void SetTitle(std::string title);
 
-		// open the browsing window
+        // open the browsing window
         void Open();
 
-		// close the browsing window
+        // close the browsing window
         void Close();
 
-		// the browsing window is opened or not
+        // the browsing window is opened or not
         bool IsOpened() const noexcept;
 
-		// display the browsing window if opened
+        // display the browsing window if opened
         void Display();
 
-		// returns true when there is a selected filename and the "ok" button was clicked
+        // returns true when there is a selected filename and the "ok" button was clicked
         bool HasSelected() const noexcept;
 
-		// set current browsing directory
+        // set current browsing directory
         bool SetPwd(const std::filesystem::path &pwd = std::filesystem::current_path());
 
-		// returns selected filename. make sense only when HasSelected returns true
+        // returns selected filename. make sense only when HasSelected returns true
         std::filesystem::path GetSelected() const;
 
-		// set selected filename to empty
+        // set selected filename to empty
         void ClearSelected();
 
     private:
@@ -117,7 +117,7 @@ inline void ImGui::FileBrowser::SetTitle(std::string title)
 inline void ImGui::FileBrowser::Open()
 {
     ClearSelected();
-	statusStr_ = std::string();
+    statusStr_ = std::string();
     openFlag_ = true;
     closeFlag_ = false;
 }
@@ -125,7 +125,7 @@ inline void ImGui::FileBrowser::Open()
 inline void ImGui::FileBrowser::Close()
 {
     ClearSelected();
-	statusStr_ = std::string();
+    statusStr_ = std::string();
     closeFlag_ = true;
     openFlag_ = false;
 }
