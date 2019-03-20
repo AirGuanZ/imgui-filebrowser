@@ -212,6 +212,11 @@ inline void ImGui::FileBrowser::Display()
         SetPwd(newPwd);
     }
 
+    SameLine();
+
+    if(SmallButton("*"))
+        SetPwd(pwd_);
+
     if(newDirNameBuf_)
     {
         SameLine();
