@@ -32,6 +32,10 @@ namespace ImGui
         // pwd is set to current working directory by default
         explicit FileBrowser(ImGuiFileBrowserFlags flags = 0);
 
+        FileBrowser(const FileBrowser &copyFrom);
+
+        FileBrowser &operator=(const FileBrowser &copyFrom);
+
         // set the window title text
         void SetTitle(std::string title);
 
@@ -117,6 +121,39 @@ inline ImGui::FileBrowser::FileBrowser(ImGuiFileBrowserFlags flags)
     inputNameBuf_->at(0) = '\0';
     SetTitle("file browser");
     SetPwd(std::filesystem::current_path());
+}
+
+inline ImGui::FileBrowser::FileBrowser(const FileBrowser &copyFrom)
+    : FileBrowser()
+{
+    *this = copyFrom;
+}
+
+inline ImGui::FileBrowser &ImGui::FileBrowser::operator=(const FileBrowser &copyFrom)
+{
+    flags_ = copyFrom.flags_;
+    SetTitle(copyFrom.title_);
+
+    openFlag_  = copyFrom.openFlag_;
+    closeFlag_ = copyFrom.closeFlag_;
+    isOpened_  = copyFrom.isOpened_;
+    ok_        = copyFrom.ok_;
+    
+    statusStr_ = "";
+    pwd_ = copyFrom.pwd_;
+    selectedFilename_ = copyFrom.selectedFilename_;
+
+    fileRecords_ = copyFrom.fileRecords_;
+
+    *inputNameBuf_ = *copyFrom.inputNameBuf_;
+
+    if(flags_ & ImGuiFileBrowserFlags_CreateNewDir)
+    {
+        newDirNameBuf_ = std::make_unique<std::array<char, INPUT_NAME_BUF_SIZE>>();
+        *newDirNameBuf_ = *copyFrom.newDirNameBuf_;
+    }
+
+    return *this;
 }
 
 inline void ImGui::FileBrowser::SetTitle(std::string title)
