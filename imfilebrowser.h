@@ -63,6 +63,8 @@ namespace ImGui
         // set selected filename to empty
         void ClearSelected();
 
+        void SetTypeFilters(const std::vector<const char*>& typeFilters);
+
     private:
 
         class ScopeGuard
@@ -90,6 +92,9 @@ namespace ImGui
 
         std::string statusStr_;
 
+        std::vector<const char*> typeFilters_;
+        int typeFilterIndex_;
+
         std::filesystem::path pwd_;
         std::string selectedFilename_;
 
@@ -98,6 +103,7 @@ namespace ImGui
             bool isDir;
             std::string name;
             std::string showName;
+            std::string extension;
         };
         std::vector<FileRecord> fileRecords_;
 
@@ -121,6 +127,9 @@ inline ImGui::FileBrowser::FileBrowser(ImGuiFileBrowserFlags flags)
     inputNameBuf_->at(0) = '\0';
     SetTitle("file browser");
     SetPwd(std::filesystem::current_path());
+
+    typeFilters_.clear();
+    typeFilterIndex_ = 0;
 }
 
 inline ImGui::FileBrowser::FileBrowser(const FileBrowser &copyFrom)
@@ -293,6 +302,9 @@ inline void ImGui::FileBrowser::Display()
 
         for(auto &rsc : fileRecords_)
         {
+            if (!rsc.isDir && typeFilters_.size() > 0 && typeFilterIndex_ < typeFilters_.size() && !(rsc.extension == typeFilters_[typeFilterIndex_]))
+                continue;
+
             const bool selected = selectedFilename_ == rsc.name;
             if(Selectable(rsc.showName.c_str(), selected, ImGuiSelectableFlags_DontClosePopups))
             {
@@ -369,6 +381,14 @@ inline void ImGui::FileBrowser::Display()
         SameLine();
         Text("%s", statusStr_.c_str());
     }
+
+    if (!typeFilters_.empty())
+    {
+        ImGui::SameLine();
+        ImGui::PushItemWidth(100.0f);
+        ImGui::Combo("##Filters", &typeFilterIndex_, typeFilters_.data(), int(typeFilters_.size()));
+        ImGui::PopItemWidth();
+    }
 }
 
 inline bool ImGui::FileBrowser::HasSelected() const noexcept
@@ -408,6 +428,12 @@ inline void ImGui::FileBrowser::ClearSelected()
     ok_ = false;
 }
 
+inline void ImGui::FileBrowser::SetTypeFilters(const std::vector<const char*>& typeFilters)
+{
+    typeFilters_ = typeFilters;
+    typeFilterIndex_ = 0;
+}
+
 inline void ImGui::FileBrowser::SetPwdUncatched(const std::filesystem::path &pwd)
 {
     fileRecords_ = { FileRecord{ true, "..", "[D] .." } };
@@ -426,6 +452,8 @@ inline void ImGui::FileBrowser::SetPwdUncatched(const std::filesystem::path &pwd
         rcd.name = p.path().filename().string();
         if(rcd.name.empty())
             continue;
+
+        rcd.extension = p.path().filename().extension().string();
 
         rcd.showName = (rcd.isDir ? "[D] " : "[F] ") + p.path().filename().u8string();
         fileRecords_.push_back(rcd);
