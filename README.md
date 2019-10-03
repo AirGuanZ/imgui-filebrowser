@@ -26,14 +26,22 @@ int main()
     // create a file browser instance
     ImGui::FileBrowser fileDialog;
     
+    // (optional) set browser properties
+    fileDialog.SetTitle("title");
+    fileDialog.SetTypeFilters({ ".h", ".cpp" });
+    
     // mainloop
     while(continueRendering)
     {
         //...do other stuff like ImGui::NewFrame();
         
-        // open file dialog when user clicks this button
-        if(ImGui::Button("open file dialog"))
-            fileDialog.Open();
+        if(ImGui::Begin("dummy window"))
+        {
+            // open file dialog when user clicks this button
+            if(ImGui::Button("open file dialog"))
+                fileDialog.Open();
+            ImGui::End();
+        }
         
         fileDialog.Display();
         
