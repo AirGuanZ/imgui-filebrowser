@@ -40,8 +40,8 @@ int main()
             // open file dialog when user clicks this button
             if(ImGui::Button("open file dialog"))
                 fileDialog.Open();
-            ImGui::End();
         }
+        ImGui::End();
         
         fileDialog.Display();
         
@@ -56,5 +56,22 @@ int main()
     
     //...shutdown
 }
+```
+
+## Options
+
+Various options can be combined with '|' and passed to the constructor:
+
+```cpp
+enum ImGuiFileBrowserFlags_
+{
+    ImGuiFileBrowserFlags_SelectDirectory  = 1 << 0, // select directory instead of regular file
+    ImGuiFileBrowserFlags_EnterNewFilename = 1 << 1, // allow user to enter new filename when selecting regular file
+    ImGuiFileBrowserFlags_NoModal          = 1 << 2, // file browsing window is modal by default. specify this to use a popup window
+    ImGuiFileBrowserFlags_NoTitleBar       = 1 << 3, // hide window title bar
+    ImGuiFileBrowserFlags_NoStatusBar      = 1 << 4, // hide status bar at the bottom of browsing window
+    ImGuiFileBrowserFlags_CloseOnEsc       = 1 << 5, // close file browser when pressing 'ESC'
+    ImGuiFileBrowserFlags_CreateNewDir     = 1 << 6, // allow user to create new directory
+};
 ```
 
