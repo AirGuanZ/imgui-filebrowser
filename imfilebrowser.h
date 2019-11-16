@@ -190,7 +190,9 @@ inline void ImGui::FileBrowser::Open()
     statusStr_ = std::string();
     openFlag_ = true;
     closeFlag_ = false;
+#ifdef _WIN32
     GetDrivesBitMask();
+#endif
 }
 
 inline void ImGui::FileBrowser::Close()
