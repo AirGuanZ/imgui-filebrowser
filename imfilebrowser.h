@@ -1,10 +1,11 @@
 ﻿#pragma once
 
 #include <array>
+#include <cstring>
 #include <filesystem>
 #include <functional>
 #include <memory>
-#include <cstring>
+#include <string>
 
 #ifndef IMGUI_VERSION
 #   error "include imgui.h before this header"
@@ -190,7 +191,6 @@ inline void ImGui::FileBrowser::Open()
     statusStr_ = std::string();
     openFlag_ = true;
     closeFlag_ = false;
-    GetDrivesBitMask();
 }
 
 inline void ImGui::FileBrowser::Close()
