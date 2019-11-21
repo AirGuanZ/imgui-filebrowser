@@ -75,3 +75,7 @@ enum ImGuiFileBrowserFlags_
 };
 ```
 
+## Note
+
+The filebrowser implementation queries driver list via Win32 API (only on Windows). Thus `<Windows.h>` is included in `<imfilebrowser.h>`, which may pollute the global namespace. This can be solved by simply moving the `GetDrivesBitMask()` definition into a cpp file.
+
