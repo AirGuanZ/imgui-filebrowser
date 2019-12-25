@@ -37,6 +37,10 @@ namespace ImGui
 
         FileBrowser &operator=(const FileBrowser &copyFrom);
 
+        // set the window size (in pixels)
+        // default is (700, 450)
+        void SetWindowSize(int width, int height) noexcept;
+
         // set the window title text
         void SetTitle(std::string title);
 
@@ -86,6 +90,8 @@ namespace ImGui
         static std::uint32_t GetDrivesBitMask();
 #endif
 
+        int width_;
+        int height_;
         ImGuiFileBrowserFlags flags_;
 
         std::string title_;
@@ -113,7 +119,7 @@ namespace ImGui
         };
         std::vector<FileRecord> fileRecords_;
 
-        // IMPROVE: overflow when selectedFilename_.length() > inputNameBuf_.size() - 1
+        // IMPROVE: truncate when selectedFilename_.length() > inputNameBuf_.size() - 1
         static constexpr size_t INPUT_NAME_BUF_SIZE = 512;
         std::unique_ptr<std::array<char, INPUT_NAME_BUF_SIZE>> inputNameBuf_;
 
@@ -127,7 +133,7 @@ namespace ImGui
 } // namespace ImGui
 
 inline ImGui::FileBrowser::FileBrowser(ImGuiFileBrowserFlags flags)
-    : flags_(flags),
+    : width_(700), height_(450), flags_(flags),
       openFlag_(false), closeFlag_(false), isOpened_(false), ok_(false),
       inputNameBuf_(std::make_unique<std::array<char, INPUT_NAME_BUF_SIZE>>())
 {
@@ -179,6 +185,13 @@ inline ImGui::FileBrowser &ImGui::FileBrowser::operator=(const FileBrowser &copy
     return *this;
 }
 
+inline void ImGui::FileBrowser::SetWindowSize(int width, int height) noexcept
+{
+    assert(width > 0 && height > 0);
+    width_  = width;
+    height_ = height;
+}
+
 inline void ImGui::FileBrowser::SetTitle(std::string title)
 {
     title_ = std::move(title);
@@ -219,9 +232,9 @@ inline void ImGui::FileBrowser::Display()
     // open the popup window
 
     if(openFlag_ && (flags_ & ImGuiFileBrowserFlags_NoModal))
-        SetNextWindowSize(ImVec2(700, 450));
+        SetNextWindowSize(ImVec2(static_cast<float>(width_), static_cast<float>(height_)));
     else
-        SetNextWindowSize(ImVec2(700, 450), ImGuiCond_FirstUseEver);
+        SetNextWindowSize(ImVec2(static_cast<float>(width_), static_cast<float>(height_)), ImGuiCond_FirstUseEver);
     if(flags_ & ImGuiFileBrowserFlags_NoModal)
     {
         if(!BeginPopup(openLabel_.c_str()))
@@ -344,7 +357,7 @@ inline void ImGui::FileBrowser::Display()
         for(auto &rsc : fileRecords_)
         {
             if (!rsc.isDir && typeFilters_.size() > 0 &&
-                typeFilterIndex_ < typeFilters_.size() &&
+                static_cast<size_t>(typeFilterIndex_) < typeFilters_.size() &&
                 !(rsc.extension == typeFilters_[typeFilterIndex_]))
                 continue;
 
@@ -366,7 +379,13 @@ inline void ImGui::FileBrowser::Display()
                     {
                         selectedFilename_ = rsc.name;
                         if(!(flags_ & ImGuiFileBrowserFlags_SelectDirectory))
-                            std::strcpy(inputNameBuf_->data(), selectedFilename_.c_str());
+                        {
+#ifdef _MSC_VER
+                            strcpy_s(inputNameBuf_->data(), inputNameBuf_->size(), selectedFilename_.c_str());
+#else
+                            std::strncpy(inputNameBuf_->data(), selectedFilename_.c_str(), inputNameBuf_->size());
+#endif
+                        }
                     }
                 }
             }
@@ -482,7 +501,7 @@ inline void ImGui::FileBrowser::SetTypeFilters(const std::vector<const char*> &t
 
 inline void ImGui::FileBrowser::SetPwdUncatched(const std::filesystem::path &pwd)
 {
-    fileRecords_ = { FileRecord{ true, "..", "[D] .." } };
+    fileRecords_ = { FileRecord{ true, "..", "[D] ..", "" } };
 
     for(auto &p : std::filesystem::directory_iterator(pwd))
     {
@@ -518,7 +537,23 @@ inline void ImGui::FileBrowser::SetPwdUncatched(const std::filesystem::path &pwd
 
 #ifdef _WIN32
 
+#ifndef _INC_WINDOWS
+
+#ifndef WIN32_LEAN_AND_MEAN
+
+#define IMGUI_FILEBROWSER_UNDEF_WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+
+#endif // #ifndef WIN32_LEAN_AND_MEAN
+
 #include <Windows.h>
+
+#ifdef IMGUI_FILEBROWSER_UNDEF_WIN32_LEAN_AND_MEAN
+#undef IMGUI_FILEBROWSER_UNDEF_WIN32_LEAN_AND_MEAN
+#undef WIN32_LEAN_AND_MEAN
+#endif // #ifdef IMGUI_FILEBROWSER_UNDEF_WIN32_LEAN_AND_MEAN
+
+#endif // #ifdef _INC_WINDOWS
 
 inline std::uint32_t ImGui::FileBrowser::GetDrivesBitMask()
 {
