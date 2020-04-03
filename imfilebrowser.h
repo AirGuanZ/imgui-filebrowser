@@ -136,14 +136,14 @@ namespace ImGui
         int typeFilterIndex_;
 
         std::filesystem::path pwd_;
-        std::string selectedFilename_;
+        std::filesystem::path selectedFilename_;
 
         struct FileRecord
         {
             bool isDir = false;
-            std::string name;
+            std::filesystem::path name;
             std::string showName;
-            std::string extension;
+            std::filesystem::path extension;
         };
         std::vector<FileRecord> fileRecords_;
 
@@ -414,7 +414,7 @@ inline void ImGui::FileBrowser::Display()
                 !(rsc.extension == typeFilters_[typeFilterIndex_]))
                 continue;
 
-            if(!rsc.name.empty() && rsc.name[0] == '$')
+            if(!rsc.name.empty() && rsc.name.c_str()[0] == '$')
                 continue;
 
             const bool selected = selectedFilename_ == rsc.name;
@@ -436,7 +436,7 @@ inline void ImGui::FileBrowser::Display()
                         {
 #ifdef _MSC_VER
                             strcpy_s(inputNameBuf_->data(), inputNameBuf_->size(),
-                                     selectedFilename_.c_str());
+                                     selectedFilename_.u8string().c_str());
 #else
                             std::strncpy(inputNameBuf_->data(), selectedFilename_.c_str(),
                                          inputNameBuf_->size());
@@ -576,11 +576,11 @@ inline void ImGui::FileBrowser::SetPwdUncatched(const std::filesystem::path &pwd
         else
             continue;
 
-        rcd.name = p.path().filename().string();
+        rcd.name = p.path().filename();
         if(rcd.name.empty())
             continue;
 
-        rcd.extension = p.path().filename().extension().string();
+        rcd.extension = p.path().filename().extension();
 
         rcd.showName = (rcd.isDir ? "[D] " : "[F] ") +
                         p.path().filename().u8string();
