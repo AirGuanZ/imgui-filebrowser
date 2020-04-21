@@ -423,7 +423,7 @@ inline void ImGui::FileBrowser::Display()
             {
                 if(selected)
                 {
-                    selectedFilename_ = std::string();
+                    selectedFilename_ = std::filesystem::path();
                     (*inputNameBuf_)[0] = '\0';
                 }
                 else if(rsc.name != "..")
@@ -438,7 +438,7 @@ inline void ImGui::FileBrowser::Display()
                             strcpy_s(inputNameBuf_->data(), inputNameBuf_->size(),
                                      selectedFilename_.u8string().c_str());
 #else
-                            std::strncpy(inputNameBuf_->data(), selectedFilename_.c_str(),
+                            std::strncpy(inputNameBuf_->data(), selectedFilename_.u8string().c_str(),
                                          inputNameBuf_->size());
 #endif
                         }
