@@ -1,6 +1,6 @@
 # imgui-filebrowser
 
-[imgui-filebrowser](https://github.com/AirGuanZ/imgui-filebrowser) is a simple file browser implementation for [dear-imgui](https://github.com/ocornut/imgui).
+[imgui-filebrowser](https://github.com/AirGuanZ/imgui-filebrowser) is a simple file browser implementation for [dear-imgui](https://github.com/ocornut/imgui). C++ 17 is required.
 
 ![IMG](./screenshots/0.png)
 
