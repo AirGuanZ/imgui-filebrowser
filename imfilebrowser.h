@@ -609,7 +609,7 @@ inline void ImGui::FileBrowser::SetPwdUncatched(const std::filesystem::path &pwd
 
 #endif // #ifndef WIN32_LEAN_AND_MEAN
 
-#include <Windows.h>
+#include <windows.h>
 
 #ifdef IMGUI_FILEBROWSER_UNDEF_WIN32_LEAN_AND_MEAN
 #undef IMGUI_FILEBROWSER_UNDEF_WIN32_LEAN_AND_MEAN
