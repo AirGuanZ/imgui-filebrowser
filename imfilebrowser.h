@@ -33,6 +33,7 @@ SOFTWARE.
 #include <memory>
 #include <string>
 #include <vector>
+#include <version>
 
 #ifndef IMGUI_VERSION
 #   error "include imgui.h before this header"
@@ -117,6 +118,13 @@ namespace ImGui
 #ifdef _WIN32
         static std::uint32_t GetDrivesBitMask();
 #endif
+
+        // for c++17 compatibility
+
+#if defined(__cpp_lib_char8_t)
+        static std::string u8StrToStr(std::u8string s);
+#endif
+        static std::string u8StrToStr(std::string s);
 
         int width_;
         int height_;
@@ -336,7 +344,7 @@ inline void ImGui::FileBrowser::Display()
         PushID(secIdx);
         if(secIdx > 0)
             SameLine();
-        if(SmallButton(sec.u8string().c_str()))
+        if(SmallButton(u8StrToStr(sec.u8string()).c_str()))
             newPwdLastSecIdx = secIdx;
         PopID();
         ++secIdx;
@@ -435,8 +443,9 @@ inline void ImGui::FileBrowser::Display()
                         if(!(flags_ & ImGuiFileBrowserFlags_SelectDirectory))
                         {
 #ifdef _MSC_VER
-                            strcpy_s(inputNameBuf_->data(), inputNameBuf_->size(),
-                                     selectedFilename_.u8string().c_str());
+                            strcpy_s(
+                                inputNameBuf_->data(), inputNameBuf_->size(),
+                                u8StrToStr(selectedFilename_.u8string()).c_str());
 #else
                             std::strncpy(inputNameBuf_->data(), selectedFilename_.u8string().c_str(),
                                          inputNameBuf_->size());
@@ -583,7 +592,7 @@ inline void ImGui::FileBrowser::SetPwdUncatched(const std::filesystem::path &pwd
         rcd.extension = p.path().filename().extension();
 
         rcd.showName = (rcd.isDir ? "[D] " : "[F] ") +
-                        p.path().filename().u8string();
+                       u8StrToStr(p.path().filename().u8string());
         fileRecords_.push_back(rcd);
     }
 
@@ -596,6 +605,18 @@ inline void ImGui::FileBrowser::SetPwdUncatched(const std::filesystem::path &pwd
     pwd_ = absolute(pwd);
     selectedFilename_ = std::string();
     (*inputNameBuf_)[0] = '\0';
+}
+
+#if defined(__cpp_lib_char8_t)
+inline std::string ImGui::FileBrowser::u8StrToStr(std::u8string s)
+{
+    return std::string(s.begin(), s.end());
+}
+#endif
+
+inline std::string ImGui::FileBrowser::u8StrToStr(std::string s)
+{
+    return s;
 }
 
 #ifdef _WIN32
