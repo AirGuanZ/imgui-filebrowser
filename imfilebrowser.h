@@ -490,16 +490,11 @@ inline void ImGui::FileBrowser::Display()
     }
     else
     {
-        if(selectedFilename_.empty())
+        if(Button(" ok "))
         {
-            if(Button(" ok "))
-            {
-                ok_ = true;
-                CloseCurrentPopup();
-            }
+            ok_ = true;
+            CloseCurrentPopup();
         }
-        else if(Button("open"))
-            SetPwd(pwd_ / selectedFilename_);
     }
 
     SameLine();
