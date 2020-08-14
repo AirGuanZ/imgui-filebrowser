@@ -75,6 +75,12 @@ enum ImGuiFileBrowserFlags_
 };
 ```
 
+## Usage
+
+* Use `double click` to enter a directory
+* Use `single click` to (de)select a regular file (or directory, when `ImGuiFileBrowserFlags_SelectDirectory` is enabled)
+*  When `ImGuiFileBrowserFlags_SelectDirectory` is enabled and no directory is selected, clicking `ok` will choose the current directory as selected result
+
 ## Note
 
 The filebrowser implementation queries drive list via Win32 API (only on Windows). Thus `<Windows.h>` is included in `<imfilebrowser.h>`, which may pollute the global namespace. This can be solved by simply moving the `GetDrivesBitMask()` definition into a cpp file.
