@@ -65,14 +65,34 @@ Various options can be combined with '|' and passed to the constructor:
 ```cpp
 enum ImGuiFileBrowserFlags_
 {
-    ImGuiFileBrowserFlags_SelectDirectory  = 1 << 0, // select directory instead of regular file
-    ImGuiFileBrowserFlags_EnterNewFilename = 1 << 1, // allow user to enter new filename when selecting regular file
-    ImGuiFileBrowserFlags_NoModal          = 1 << 2, // file browsing window is modal by default. specify this to use a popup window
-    ImGuiFileBrowserFlags_NoTitleBar       = 1 << 3, // hide window title bar
-    ImGuiFileBrowserFlags_NoStatusBar      = 1 << 4, // hide status bar at the bottom of browsing window
-    ImGuiFileBrowserFlags_CloseOnEsc       = 1 << 5, // close file browser when pressing 'ESC'
-    ImGuiFileBrowserFlags_CreateNewDir     = 1 << 6, // allow user to create new directory
+    ImGuiFileBrowserFlags_SelectDirectory   = 1 << 0, // select directory instead of regular file
+    ImGuiFileBrowserFlags_EnterNewFilename  = 1 << 1, // allow user to enter new filename when selecting regular file
+    ImGuiFileBrowserFlags_NoModal           = 1 << 2, // file browsing window is modal by default. specify this to use a popup window
+    ImGuiFileBrowserFlags_NoTitleBar        = 1 << 3, // hide window title bar
+    ImGuiFileBrowserFlags_NoStatusBar       = 1 << 4, // hide status bar at the bottom of browsing window
+    ImGuiFileBrowserFlags_CloseOnEsc        = 1 << 5, // close file browser when pressing 'ESC'
+    ImGuiFileBrowserFlags_CreateNewDir      = 1 << 6, // allow user to create new directory
+    ImGuiFileBrowserFlags_MultipleSelection = 1 << 7, // allow user to select multiple files
 };
+```
+
+When `ImGuiFileBrowserFlags_MultipleSelection` is enabled, use `fileBrowser.GetMultiSelected()` to get all selected filenames (instead of `fileBrowser.GetSelected()`, which returns only one of them).
+
+Here are some common examples:
+
+```cpp
+// select single regular file for opening
+0
+// select multiple regular files for opening
+ImGuiFileBrowserFlags_MultipleSelection
+// select single directory for opening
+ImGuiFileBrowserFlags_SelectDirectory
+// select multiple directories for opening
+ImGuiFileBrowserFlags_SelectDirectory | ImGuiFileBrowserFlags_MultipleSelection
+// select single regular file for saving
+ImGuiFileBrowserFlags_EnterNewFilename | ImGuiFileBrowserFlags_CreateNewDir
+// select single directory for saving
+ImGuiFileBrowserFlags_SelectDirectory | ImGuiFileBrowserFlags_CreateNewDir
 ```
 
 ## Usage
@@ -80,6 +100,8 @@ enum ImGuiFileBrowserFlags_
 * Use `double click` to enter a directory
 * Use `single click` to (de)select a regular file (or directory, when `ImGuiFileBrowserFlags_SelectDirectory` is enabled)
 *  When `ImGuiFileBrowserFlags_SelectDirectory` is enabled and no directory is selected, clicking `ok` will choose the current directory as selected result
+*  When `ImGuiFileBrowserFlags_MultipleSelection` is enabled, hold `Shift` or `Ctrl` to select more than one file
+*  When `ImGuiFileBrowserFlags_CreateNewDir` is enabled, click the top-right little button "+" to create a new directory
 
 ## Note
 

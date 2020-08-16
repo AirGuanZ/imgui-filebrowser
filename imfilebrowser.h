@@ -31,6 +31,7 @@ SOFTWARE.
 #include <filesystem>
 #include <functional>
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 #include <version>
@@ -43,13 +44,14 @@ using ImGuiFileBrowserFlags = int;
 
 enum ImGuiFileBrowserFlags_
 {
-    ImGuiFileBrowserFlags_SelectDirectory    = 1 << 0, // select directory instead of regular file
-    ImGuiFileBrowserFlags_EnterNewFilename   = 1 << 1, // allow user to enter new filename when selecting regular file
-    ImGuiFileBrowserFlags_NoModal            = 1 << 2, // file browsing window is modal by default. specify this to use a popup window
-    ImGuiFileBrowserFlags_NoTitleBar         = 1 << 3, // hide window title bar
-    ImGuiFileBrowserFlags_NoStatusBar        = 1 << 4, // hide status bar at the bottom of browsing window
-    ImGuiFileBrowserFlags_CloseOnEsc         = 1 << 5, // close file browser when pressing 'ESC'
-    ImGuiFileBrowserFlags_CreateNewDir       = 1 << 6, // allow user to create new directory
+    ImGuiFileBrowserFlags_SelectDirectory   = 1 << 0, // select directory instead of regular file
+    ImGuiFileBrowserFlags_EnterNewFilename  = 1 << 1, // allow user to enter new filename when selecting regular file
+    ImGuiFileBrowserFlags_NoModal           = 1 << 2, // file browsing window is modal by default. specify this to use a popup window
+    ImGuiFileBrowserFlags_NoTitleBar        = 1 << 3, // hide window title bar
+    ImGuiFileBrowserFlags_NoStatusBar       = 1 << 4, // hide status bar at the bottom of browsing window
+    ImGuiFileBrowserFlags_CloseOnEsc        = 1 << 5, // close file browser when pressing 'ESC'
+    ImGuiFileBrowserFlags_CreateNewDir      = 1 << 6, // allow user to create new directory
+    ImGuiFileBrowserFlags_MultipleSelection = 1 << 7, // allow user to select multiple files. this will hide ImGuiFileBrowserFlags_EnterNewFilename
 };
 
 namespace ImGui
@@ -92,7 +94,14 @@ namespace ImGui
                                     std::filesystem::current_path());
 
         // returns selected filename. make sense only when HasSelected returns true
+        // when ImGuiFileBrowserFlags_MultipleSelection is enabled, only one of
+        // selected filename will be returned
         std::filesystem::path GetSelected() const;
+
+        // returns all selected filenames.
+        // when ImGuiFileBrowserFlags_MultipleSelection is enabled, use this
+        // instead of GetSelected
+        std::vector<std::filesystem::path> GetMultiSelected() const;
 
         // set selected filename to empty
         void ClearSelected();
@@ -144,7 +153,7 @@ namespace ImGui
         int typeFilterIndex_;
 
         std::filesystem::path pwd_;
-        std::filesystem::path selectedFilename_;
+        std::set<std::filesystem::path> selectedFilenames_;
 
         struct FileRecord
         {
@@ -208,7 +217,7 @@ inline ImGui::FileBrowser &ImGui::FileBrowser::operator=(
     
     statusStr_ = "";
     pwd_ = copyFrom.pwd_;
-    selectedFilename_ = copyFrom.selectedFilename_;
+    selectedFilenames_ = copyFrom.selectedFilenames_;
 
     fileRecords_ = copyFrom.fileRecords_;
 
@@ -425,13 +434,24 @@ inline void ImGui::FileBrowser::Display()
             if(!rsc.name.empty() && rsc.name.c_str()[0] == '$')
                 continue;
 
-            const bool selected = selectedFilename_ == rsc.name;
+            bool selected = selectedFilenames_.find(rsc.name)
+                         != selectedFilenames_.end();
+
             if(Selectable(rsc.showName.c_str(), selected,
                           ImGuiSelectableFlags_DontClosePopups))
             {
+                const bool multiSelect =
+                    (flags_ & ImGuiFileBrowserFlags_MultipleSelection) &&
+                    IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+                    (GetIO().KeyCtrl || GetIO().KeyShift);
+
                 if(selected)
                 {
-                    selectedFilename_ = std::filesystem::path();
+                    if(!multiSelect)
+                        selectedFilenames_.clear();
+                    else
+                        selectedFilenames_.erase(rsc.name);
+
                     (*inputNameBuf_)[0] = '\0';
                 }
                 else if(rsc.name != "..")
@@ -439,20 +459,27 @@ inline void ImGui::FileBrowser::Display()
                     if((rsc.isDir && (flags_ & ImGuiFileBrowserFlags_SelectDirectory)) ||
                        (!rsc.isDir && !(flags_ & ImGuiFileBrowserFlags_SelectDirectory)))
                     {
-                        selectedFilename_ = rsc.name;
+                        if(!multiSelect)
+                            selectedFilenames_.clear();
+                        selectedFilenames_.insert(rsc.name);
                         if(!(flags_ & ImGuiFileBrowserFlags_SelectDirectory))
                         {
 #ifdef _MSC_VER
                             strcpy_s(
                                 inputNameBuf_->data(), inputNameBuf_->size(),
-                                u8StrToStr(selectedFilename_.u8string()).c_str());
+                                u8StrToStr(rsc.name.u8string()).c_str());
 #else
                             std::strncpy(inputNameBuf_->data(),
-                                         u8StrToStr(selectedFilename_.u8string()).c_str(),
+                                         u8StrToStr(rsc.name.u8string()).c_str(),
                                          inputNameBuf_->size());
 #endif
                         }
                     }
+                }
+                else
+                {
+                    if(!multiSelect)
+                        selectedFilenames_.clear();
                 }
             }
 
@@ -475,14 +502,17 @@ inline void ImGui::FileBrowser::Display()
         ScopeGuard popTextID([] { PopID(); });
 
         PushItemWidth(-1);
-        if(InputText("", inputNameBuf_->data(), inputNameBuf_->size()))
-            selectedFilename_ = inputNameBuf_->data();
+        if(InputText("", inputNameBuf_->data(), inputNameBuf_->size()) &&
+           inputNameBuf_->at(0) != '\0')
+        {
+            selectedFilenames_ = { inputNameBuf_->data() };
+        }
         PopItemWidth();
     }
 
     if(!(flags_ & ImGuiFileBrowserFlags_SelectDirectory))
     {
-        if(Button(" ok ") && !selectedFilename_.empty())
+        if(Button(" ok ") && !selectedFilenames_.empty())
         {
             ok_ = true;
             CloseCurrentPopup();
@@ -549,12 +579,22 @@ inline bool ImGui::FileBrowser::SetPwd(const std::filesystem::path &pwd)
 
 inline std::filesystem::path ImGui::FileBrowser::GetSelected() const
 {
-    return pwd_ / selectedFilename_;
+    return pwd_ / *selectedFilenames_.begin();
+}
+
+inline std::vector<std::filesystem::path>
+    ImGui::FileBrowser::GetMultiSelected() const
+{
+    std::vector<std::filesystem::path> ret;
+    ret.reserve(selectedFilenames_.size());
+    for(auto &s : selectedFilenames_)
+        ret.push_back(pwd_ / s);
+    return ret;
 }
 
 inline void ImGui::FileBrowser::ClearSelected()
 {
-    selectedFilename_ = std::string();
+    selectedFilenames_.clear();
     (*inputNameBuf_)[0] = '\0';
     ok_ = false;
 }
@@ -599,7 +639,7 @@ inline void ImGui::FileBrowser::SetPwdUncatched(const std::filesystem::path &pwd
     });
 
     pwd_ = absolute(pwd);
-    selectedFilename_ = std::string();
+    selectedFilenames_.clear();
     (*inputNameBuf_)[0] = '\0';
 }
 
