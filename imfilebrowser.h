@@ -93,6 +93,9 @@ namespace ImGui
         bool SetPwd(const std::filesystem::path &pwd =
                                     std::filesystem::current_path());
 
+        // get current browsing directory
+        const std::filesystem::path &GetPwd() const noexcept;
+
         // returns selected filename. make sense only when HasSelected returns true
         // when ImGuiFileBrowserFlags_MultipleSelection is enabled, only one of
         // selected filename will be returned
@@ -575,6 +578,11 @@ inline bool ImGui::FileBrowser::SetPwd(const std::filesystem::path &pwd)
 
     SetPwdUncatched(std::filesystem::current_path());
     return false;
+}
+
+inline const class std::filesystem::path &ImGui::FileBrowser::GetPwd() const noexcept
+{
+    return pwd_;
 }
 
 inline std::filesystem::path ImGui::FileBrowser::GetSelected() const
