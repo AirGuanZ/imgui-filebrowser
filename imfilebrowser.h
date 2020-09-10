@@ -587,12 +587,18 @@ inline const class std::filesystem::path &ImGui::FileBrowser::GetPwd() const noe
 
 inline std::filesystem::path ImGui::FileBrowser::GetSelected() const
 {
+    // when ok_ is true, selectedFilenames_ may be empty if SelectDirectory
+    // is enabled. return pwd in that case.
+    if(selectedFilenames_.empty())
+        return pwd_;
     return pwd_ / *selectedFilenames_.begin();
 }
 
 inline std::vector<std::filesystem::path>
     ImGui::FileBrowser::GetMultiSelected() const
 {
+    if(selectedFilenames_.empty())
+        return { pwd_ };
     std::vector<std::filesystem::path> ret;
     ret.reserve(selectedFilenames_.size());
     for(auto &s : selectedFilenames_)
