@@ -189,7 +189,8 @@ inline ImGui::FileBrowser::FileBrowser(ImGuiFileBrowserFlags flags)
         newDirNameBuf_ = std::make_unique<
                                 std::array<char, INPUT_NAME_BUF_SIZE>>();
 
-    inputNameBuf_->at(0) = '\0';
+    inputNameBuf_->front() = '\0';
+    inputNameBuf_->back() = '\0';
     SetTitle("file browser");
     SetPwd(std::filesystem::current_path());
 
@@ -474,7 +475,7 @@ inline void ImGui::FileBrowser::Display()
 #else
                             std::strncpy(inputNameBuf_->data(),
                                          u8StrToStr(rsc.name.u8string()).c_str(),
-                                         inputNameBuf_->size());
+                                         inputNameBuf_->size() - 1);
 #endif
                         }
                     }
@@ -545,7 +546,7 @@ inline void ImGui::FileBrowser::Display()
         Text("%s", statusStr_.c_str());
     }
 
-    if (!typeFilters_.empty())
+    if(!typeFilters_.empty())
     {
         SameLine();
         PushItemWidth(8 * GetFontSize());
