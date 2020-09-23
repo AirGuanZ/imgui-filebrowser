@@ -34,7 +34,6 @@ SOFTWARE.
 #include <set>
 #include <string>
 #include <vector>
-#include <version>
 
 #ifndef IMGUI_VERSION
 #   error "include imgui.h before this header"
