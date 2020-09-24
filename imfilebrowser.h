@@ -29,7 +29,6 @@ SOFTWARE.
 #include <array>
 #include <cstring>
 #include <filesystem>
-#include <functional>
 #include <memory>
 #include <set>
 #include <string>
@@ -113,16 +112,20 @@ namespace ImGui
 
     private:
 
-        class ScopeGuard
-        {
-            std::function<void()> func_;
+		template <class Functor>
+		struct ScopeGuard
+		{
+			ScopeGuard(Functor&& t) : func(std::move(t)) {};
 
-        public:
+			~ScopeGuard()
+			{
+				func();
+			}
 
-            template<typename T>
-            explicit ScopeGuard(T func) : func_(std::move(func)) { }
-            ~ScopeGuard() { func_(); }
-        };
+		private:
+
+			Functor func;
+		};
 
         void SetPwdUncatched(const std::filesystem::path &pwd);
 
