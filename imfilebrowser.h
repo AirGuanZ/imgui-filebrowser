@@ -115,7 +115,7 @@ namespace ImGui
         template <class Functor>
         struct ScopeGuard
         {
-            ScopeGuard(Functor&& t) : func(std::move(t)) {};
+            ScopeGuard(Functor&& t) : func(std::move(t)) { }
 
             ~ScopeGuard()
             {
