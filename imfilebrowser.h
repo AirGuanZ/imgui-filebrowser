@@ -111,21 +111,21 @@ namespace ImGui
         void SetTypeFilters(const std::vector<const char*> &typeFilters);
 
     private:
+    
+        template <class Functor>
+        struct ScopeGuard
+        {
+            ScopeGuard(Functor&& t) : func(std::move(t)) {};
 
-		template <class Functor>
-		struct ScopeGuard
-		{
-			ScopeGuard(Functor&& t) : func(std::move(t)) {};
+            ~ScopeGuard()
+            {
+                func();
+            }
 
-			~ScopeGuard()
-			{
-				func();
-			}
+        private:
 
-		private:
-
-			Functor func;
-		};
+            Functor func;
+        };
 
         void SetPwdUncatched(const std::filesystem::path &pwd);
 
