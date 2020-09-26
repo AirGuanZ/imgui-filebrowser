@@ -72,7 +72,7 @@ enum ImGuiFileBrowserFlags_
     ImGuiFileBrowserFlags_NoStatusBar       = 1 << 4, // hide status bar at the bottom of browsing window
     ImGuiFileBrowserFlags_CloseOnEsc        = 1 << 5, // close file browser when pressing 'ESC'
     ImGuiFileBrowserFlags_CreateNewDir      = 1 << 6, // allow user to create new directory
-    ImGuiFileBrowserFlags_MultipleSelection = 1 << 7, // allow user to select multiple files
+    ImGuiFileBrowserFlags_MultipleSelection = 1 << 7, // allow user to select multiple files. this will hide ImGuiFileBrowserFlags_EnterNewFilename
 };
 ```
 
@@ -102,6 +102,7 @@ ImGuiFileBrowserFlags_SelectDirectory | ImGuiFileBrowserFlags_CreateNewDir
 *  When `ImGuiFileBrowserFlags_SelectDirectory` is enabled and no directory is selected, clicking `ok` will choose the current directory as selected result
 *  When `ImGuiFileBrowserFlags_MultipleSelection` is enabled, hold `Shift` or `Ctrl` to select more than one file
 *  When `ImGuiFileBrowserFlags_CreateNewDir` is enabled, click the top-right little button "+" to create a new directory
+*  When `ImGuiFileBrowserFlags_SelectDirectory` is not specified, use `double click` to choose a regular file as selected result.
 
 ## Note
 

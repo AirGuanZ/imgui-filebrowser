@@ -486,11 +486,20 @@ inline void ImGui::FileBrowser::Display()
                 }
             }
 
-            if(IsItemClicked(0) && IsMouseDoubleClicked(0) && rsc.isDir)
+            if(IsItemClicked(0) && IsMouseDoubleClicked(0))
             {
-                setNewPwd = true;
-                newPwd = (rsc.name != "..") ? (pwd_ / rsc.name) :
-                                               pwd_.parent_path();
+                if(rsc.isDir)
+                {
+                    setNewPwd = true;
+                    newPwd = (rsc.name != "..") ? (pwd_ / rsc.name) :
+                                                   pwd_.parent_path();
+                }
+                else if(!(flags_ & ImGuiFileBrowserFlags_SelectDirectory))
+                {
+                    selectedFilenames_ = { rsc.name };
+                    ok_ = true;
+                    CloseCurrentPopup();
+                }
             }
         }
     }
