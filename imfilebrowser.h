@@ -26,6 +26,7 @@ SOFTWARE.
 
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cstring>
 #include <filesystem>
