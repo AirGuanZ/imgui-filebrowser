@@ -1,19 +1,19 @@
 # imgui-filebrowser
 
-[imgui-filebrowser](https://github.com/AirGuanZ/imgui-filebrowser) is a simple file browser implementation for [dear-imgui](https://github.com/ocornut/imgui). C++ 17 is required.
+[imgui-filebrowser](https://github.com/AirGuanZ/imgui-filebrowser) is a header-only file browser implementation for [dear-imgui](https://github.com/ocornut/imgui). C++ 17 is required.
 
 ![IMG](./screenshots/0.png)
 
 ## Getting Started
 
-imgui-filebrowser is header-only and must be included after imgui.h:
+`imfilebrowser.h` should be included after `imgui.h`:
 
 ```cpp
 #include <imgui.h>
 #include <imfilebrowser.h>
 ```
 
-Instead of creating a file dialog by an immediate function call, you need to create a `ImGui::FileBrowser` instance, open it with member function `Open()`, and call `Display()` in each frame. Here is a simple example:
+Instead of creating a file dialog with an immediate function call, you need to create a `ImGui::FileBrowser` instance, open it with member function `Open()`, and call `Display()` in each frame. Here is a simple example:
 
 ```cpp
 #include <imgui.h>
@@ -97,14 +97,19 @@ ImGuiFileBrowserFlags_SelectDirectory | ImGuiFileBrowserFlags_CreateNewDir
 
 ## Usage
 
-* Use `double click` to enter a directory
-* Use `single click` to (de)select a regular file (or directory, when `ImGuiFileBrowserFlags_SelectDirectory` is enabled)
-*  When `ImGuiFileBrowserFlags_SelectDirectory` is enabled and no directory is selected, clicking `ok` will choose the current directory as selected result
+* double click to enter a directory
+* single click to (de)select a regular file (or directory, when `ImGuiFileBrowserFlags_SelectDirectory` is enabled)
+*  When `ImGuiFileBrowserFlags_SelectDirectory` is enabled and no directory is selected, click `ok` to choose the current directory as selected result
 *  When `ImGuiFileBrowserFlags_MultipleSelection` is enabled, hold `Shift` or `Ctrl` to select more than one file
 *  When `ImGuiFileBrowserFlags_CreateNewDir` is enabled, click the top-right little button "+" to create a new directory
-*  When `ImGuiFileBrowserFlags_SelectDirectory` is not specified, use `double click` to choose a regular file as selected result.
+*  When `ImGuiFileBrowserFlags_SelectDirectory` is not specified,  double click to choose a regular file as selected result.
+
+## Type Filters
+
+* (optionally) use `browser.SetTypeFilters({".h", ".cpp"})` to set file extension filters.
+* ".*" matches with any extension
+* filters are case-insensitive on Windows platform
 
 ## Note
 
 The filebrowser implementation queries drive list via Win32 API (only on Windows). Thus `<Windows.h>` is included in `<imfilebrowser.h>`, which may pollute the global namespace. This can be solved by simply moving the `GetDrivesBitMask()` definition into a cpp file.
-
