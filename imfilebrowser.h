@@ -82,8 +82,13 @@ namespace ImGui
         // set selected filename to empty
         void ClearSelected();
 
-        // set file type filters. eg. { ".h", ".cpp", ".hpp", ".cc", ".inl" }
+        // (optional) set file type filters. eg. { ".h", ".cpp", ".hpp" }
+        // ".*" means all file types
         void SetTypeFilters(const std::vector<const char*> &typeFilters);
+
+        // set currently applied type filter
+        // default value is 0 (the first type filter)
+        void SetCurrentTypeFilterIndex(int index);
 
     private:
     
@@ -103,6 +108,8 @@ namespace ImGui
         };
 
         void SetPwdUncatched(const std::filesystem::path &pwd);
+
+        bool IsExtensionMatched(const std::filesystem::path &extension) const;
 
 #ifdef _WIN32
         static std::uint32_t GetDrivesBitMask();
@@ -407,9 +414,7 @@ inline void ImGui::FileBrowser::Display()
 
         for(auto &rsc : fileRecords_)
         {
-            if (!rsc.isDir && typeFilters_.size() > 0 &&
-                static_cast<size_t>(typeFilterIndex_) < typeFilters_.size() &&
-                !(rsc.extension == typeFilters_[typeFilterIndex_]))
+            if(!rsc.isDir && !IsExtensionMatched(rsc.extension))
                 continue;
 
             if(!rsc.name.empty() && rsc.name.c_str()[0] == '$')
@@ -607,6 +612,11 @@ inline void ImGui::FileBrowser::SetTypeFilters(
     typeFilterIndex_ = 0;
 }
 
+inline void ImGui::FileBrowser::SetCurrentTypeFilterIndex(int index)
+{
+    typeFilterIndex_ = index;
+}
+
 inline void ImGui::FileBrowser::SetPwdUncatched(const std::filesystem::path &pwd)
 {
     fileRecords_ = { FileRecord{ true, "..", "[D] ..", "" } };
@@ -642,6 +652,18 @@ inline void ImGui::FileBrowser::SetPwdUncatched(const std::filesystem::path &pwd
     pwd_ = absolute(pwd);
     selectedFilenames_.clear();
     (*inputNameBuf_)[0] = '\0';
+}
+
+inline bool ImGui::FileBrowser::IsExtensionMatched(
+    const std::filesystem::path &extension) const
+{
+    if(typeFilters_.empty())
+        return true;
+    if(static_cast<size_t>(typeFilterIndex_) >= typeFilters_.size())
+        return true;
+    if(typeFilters_[typeFilterIndex_] == std::string_view(".*"))
+        return true;
+    return extension == typeFilters_[typeFilterIndex_];
 }
 
 #if defined(__cpp_lib_char8_t)
