@@ -140,6 +140,7 @@ namespace ImGui
 
         std::vector<std::string> typeFilters_;
         int typeFilterIndex_;
+        bool hasAllFilter_;
 
         std::filesystem::path pwd_;
         std::set<std::filesystem::path> selectedFilenames_;
@@ -182,6 +183,7 @@ inline ImGui::FileBrowser::FileBrowser(ImGuiFileBrowserFlags flags)
 
     typeFilters_.clear();
     typeFilterIndex_ = 0;
+    hasAllFilter_ = false;
 
 #ifdef _WIN32
     drives_ = GetDrivesBitMask();
@@ -197,6 +199,9 @@ inline ImGui::FileBrowser::FileBrowser(const FileBrowser &copyFrom)
 inline ImGui::FileBrowser &ImGui::FileBrowser::operator=(
     const FileBrowser &copyFrom)
 {
+    width_  = copyFrom.width_;
+    height_ = copyFrom.height_;
+
     flags_ = copyFrom.flags_;
     SetTitle(copyFrom.title_);
 
@@ -206,7 +211,12 @@ inline ImGui::FileBrowser &ImGui::FileBrowser::operator=(
     ok_        = copyFrom.ok_;
     
     statusStr_ = "";
-    pwd_ = copyFrom.pwd_;
+
+    typeFilters_     = copyFrom.typeFilters_;
+    typeFilterIndex_ = copyFrom.typeFilterIndex_;
+    hasAllFilter_    = copyFrom.hasAllFilter_;
+
+    pwd_               = copyFrom.pwd_;
     selectedFilenames_ = copyFrom.selectedFilenames_;
 
     fileRecords_ = copyFrom.fileRecords_;
@@ -555,8 +565,6 @@ inline void ImGui::FileBrowser::Display()
                     typeFilterIndex_ = static_cast<int>(i);
             }
         }
-        //Combo("##type_filters", &typeFilterIndex_,
-        //      typeFilters_.data(), int(typeFilters_.size()));
         PopItemWidth();
     }
 }
@@ -647,13 +655,13 @@ inline void ImGui::FileBrowser::SetTypeFilters(
 
     if(typeFilters.size() > 1)
     {
-        bool noAllFilters = false;
+        hasAllFilter_  = true;
         std::string allFiltersName = std::string();
         for(size_t i = 0; i < typeFilters.size(); ++i)
         {
             if(typeFilters[i] == std::string_view(".*"))
             {
-                noAllFilters = true;
+                hasAllFilter_ = false;
                 break;
             }
 
@@ -662,7 +670,7 @@ inline void ImGui::FileBrowser::SetTypeFilters(
             allFiltersName += typeFilters[i];
         }
 
-        if(!noAllFilters)
+        if(hasAllFilter_)
             typeFilters_.push_back(std::move(allFiltersName));
     }
 
@@ -741,7 +749,7 @@ inline bool ImGui::FileBrowser::IsExtensionMatched(
         return true;
 
     // all type filters
-    if(typeFilters_.size() > 1 && typeFilterIndex_ == 0)
+    if(hasAllFilter_ && typeFilterIndex_ == 0)
     {
         for(size_t i = 1; i < typeFilters_.size(); ++i)
         {
