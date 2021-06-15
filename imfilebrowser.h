@@ -51,6 +51,8 @@ namespace ImGui {
 		// default is (700, 450)
 		void SetWindowSize(int width, int height) noexcept;
 
+		ImVec2 GetWindowSize();
+
 		// set the window title text
 		void SetTitle(std::string title);
 
@@ -238,6 +240,10 @@ inline void ImGui::FileBrowser::SetWindowSize(int width, int height) noexcept {
 	assert(width > 0 && height > 0);
 	width_ = width;
 	height_ = height;
+}
+
+inline ImVec2 ImGui::FileBrowser::GetWindowSize() {
+	return {static_cast<float>(width_), static_cast<float>(height_)};
 }
 
 inline void ImGui::FileBrowser::SetTitle(std::string title) {
