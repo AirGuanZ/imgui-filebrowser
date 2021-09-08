@@ -7,6 +7,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #ifndef IMGUI_VERSION
@@ -90,8 +91,11 @@ namespace ImGui
         // default value is 0 (the first type filter)
         void SetCurrentTypeFilterIndex(int index);
 
+        // when ImGuiFileBrowserFlags_EnterNewFilename is set
+        // this function will pre-fill the input dialog with a filename.
+        void SetInputName(std::string_view input);
     private:
-    
+
         template <class Functor>
         struct ScopeGuard
         {
@@ -209,7 +213,7 @@ inline ImGui::FileBrowser &ImGui::FileBrowser::operator=(
     closeFlag_ = copyFrom.closeFlag_;
     isOpened_  = copyFrom.isOpened_;
     ok_        = copyFrom.ok_;
-    
+
     statusStr_ = "";
 
     typeFilters_     = copyFrom.typeFilters_;
@@ -816,3 +820,19 @@ inline std::uint32_t ImGui::FileBrowser::GetDrivesBitMask()
 }
 
 #endif
+
+inline void ImGui::FileBrowser::SetInputName(std::string_view input)
+{
+    if((flags_ & ImGuiFileBrowserFlags_EnterNewFilename))
+    {
+        if (input.size() >= static_cast<size_t>(INPUT_NAME_BUF_SIZE))
+        {
+            // If input doesn't fit trim off characters
+            input = input.substr(0,INPUT_NAME_BUF_SIZE - 1);
+        }
+        std::copy(input.begin(), input.end(), inputNameBuf_->begin());
+        inputNameBuf_->at(input.size()) = '\0';
+        selectedFilenames_ = { inputNameBuf_->data() };
+        // This must match or ok button is locked.
+    }
+}
