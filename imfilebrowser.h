@@ -151,7 +151,7 @@ namespace ImGui
         std::string statusStr_;
 
         std::vector<std::string> typeFilters_;
-        int typeFilterIndex_;
+        unsigned int typeFilterIndex_;
         bool hasAllFilter_;
 
         std::filesystem::path pwd_;
@@ -637,10 +637,10 @@ inline void ImGui::FileBrowser::Display()
 
             for(size_t i = 0; i < typeFilters_.size(); ++i)
             {
-                bool selected = static_cast<int>(i) == typeFilterIndex_;
+                bool selected = i == typeFilterIndex_;
                 if(Selectable(typeFilters_[i].c_str(), selected) && !selected)
                 {
-                    typeFilterIndex_ = static_cast<int>(i);
+                    typeFilterIndex_ = static_cast<unsigned int>(i);
                 }
             }
         }
@@ -776,7 +776,7 @@ inline void ImGui::FileBrowser::SetTypeFilters(
 
 inline void ImGui::FileBrowser::SetCurrentTypeFilterIndex(int index)
 {
-    typeFilterIndex_ = index;
+    typeFilterIndex_ = static_cast<unsigned int>(index);
 }
 
 inline void ImGui::FileBrowser::SetInputName(std::string_view input)
