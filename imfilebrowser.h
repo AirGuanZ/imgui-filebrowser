@@ -941,7 +941,7 @@ inline std::uint32_t ImGui::FileBrowser::GetDrivesBitMask()
         }
         char rootName[4] = { static_cast<char>('A' + i), ':', '\\', '\0' };
         UINT type = GetDriveTypeA(rootName);
-        if(type == DRIVE_REMOVABLE || type == DRIVE_FIXED)
+        if(type == DRIVE_REMOVABLE || type == DRIVE_FIXED ||  type == DRIVE_REMOTE)
         {
             ret |= (1 << i);
         }
