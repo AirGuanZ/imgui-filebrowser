@@ -609,12 +609,11 @@ inline void ImGui::FileBrowser::Display()
 
     SameLine();
 
-    int escapeKey = GetIO().KeyMap[ImGuiKey_Escape];
     bool shouldExit =
         Button("cancel") || closeFlag_ ||
         ((flags_ & ImGuiFileBrowserFlags_CloseOnEsc) &&
         IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
-        escapeKey >= 0 && IsKeyPressed(escapeKey));
+        IsKeyPressed(ImGuiKey_Escape));
     if(shouldExit)
     {
         CloseCurrentPopup();
