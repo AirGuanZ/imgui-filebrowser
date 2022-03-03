@@ -231,12 +231,17 @@ inline ImGui::FileBrowser &ImGui::FileBrowser::operator=(
 
     *inputNameBuf_ = *copyFrom.inputNameBuf_;
 
+    openNewDirLabel_ = copyFrom.openNewDirLabel_;
     if(flags_ & ImGuiFileBrowserFlags_CreateNewDir)
     {
         newDirNameBuf_ = std::make_unique<
             std::array<char, INPUT_NAME_BUF_SIZE>>();
         *newDirNameBuf_ = *copyFrom.newDirNameBuf_;
     }
+
+#ifdef _WIN32
+    drives_ = copyFrom.drives_;
+#endif
 
     return *this;
 }
