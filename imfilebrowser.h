@@ -42,6 +42,10 @@ namespace ImGui
 
         FileBrowser &operator=(const FileBrowser &copyFrom);
 
+        // set the window position (in pixels)
+        // default is centered
+        void SetWindowPos(int posx, int posy) noexcept;
+
         // set the window size (in pixels)
         // default is (700, 450)
         void SetWindowSize(int width, int height) noexcept;
@@ -139,6 +143,8 @@ namespace ImGui
 
         int width_;
         int height_;
+        int posX_;
+        int posY_;
         ImGuiFileBrowserFlags flags_;
 
         std::string title_;
@@ -148,6 +154,7 @@ namespace ImGui
         bool closeFlag_;
         bool isOpened_;
         bool ok_;
+        bool posIsSet_;
 
         std::string statusStr_;
 
@@ -174,8 +181,8 @@ namespace ImGui
 } // namespace ImGui
 
 inline ImGui::FileBrowser::FileBrowser(ImGuiFileBrowserFlags flags)
-    : width_(700), height_(450), flags_(flags),
-      openFlag_(false), closeFlag_(false), isOpened_(false), ok_(false),
+    : width_(700), height_(450), posX_(0), posY_(0), flags_(flags),
+      openFlag_(false), closeFlag_(false), isOpened_(false), ok_(false), posIsSet_(false),
       inputNameBuf_(std::make_unique<std::array<char, INPUT_NAME_BUF_SIZE>>())
 {
     if(flags_ & ImGuiFileBrowserFlags_CreateNewDir)
@@ -210,6 +217,9 @@ inline ImGui::FileBrowser &ImGui::FileBrowser::operator=(
     width_  = copyFrom.width_;
     height_ = copyFrom.height_;
 
+    posX_ = copyFrom.posX_;
+    posY_ = copyFrom.posY_;
+
     flags_ = copyFrom.flags_;
     SetTitle(copyFrom.title_);
 
@@ -217,6 +227,7 @@ inline ImGui::FileBrowser &ImGui::FileBrowser::operator=(
     closeFlag_ = copyFrom.closeFlag_;
     isOpened_  = copyFrom.isOpened_;
     ok_        = copyFrom.ok_;
+    posIsSet_  = copyFrom.posIsSet_;
 
     statusStr_ = "";
 
@@ -244,6 +255,13 @@ inline ImGui::FileBrowser &ImGui::FileBrowser::operator=(
 #endif
 
     return *this;
+}
+
+inline void ImGui::FileBrowser::SetWindowPos(int posx, int posy) noexcept
+{
+    posX_ = posx;
+    posY_ = posy;
+    posIsSet_ = true;
 }
 
 inline void ImGui::FileBrowser::SetWindowSize(int width, int height) noexcept
@@ -304,11 +322,18 @@ inline void ImGui::FileBrowser::Display()
 
     if(openFlag_ && (flags_ & ImGuiFileBrowserFlags_NoModal))
     {
+        if (posIsSet_)
+            SetNextWindowPos(
+                    ImVec2(static_cast<float>(posX_), static_cast<float>(posY_)));
         SetNextWindowSize(
             ImVec2(static_cast<float>(width_), static_cast<float>(height_)));
     }
     else
     {
+        if (posIsSet_)
+            SetNextWindowPos(
+                    ImVec2(static_cast<float>(posX_), static_cast<float>(posY_)),
+                    ImGuiCond_FirstUseEver);
         SetNextWindowSize(
             ImVec2(static_cast<float>(width_), static_cast<float>(height_)),
             ImGuiCond_FirstUseEver);
