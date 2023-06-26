@@ -887,7 +887,7 @@ inline bool ImGui::FileBrowser::IsExtensionMatched(
     const std::filesystem::path &_extension) const
 {
 #ifdef _WIN32
-    std::filesystem::path extension = ToLower(_extension.string());
+    std::filesystem::path extension = ToLower(u8StrToStr(_extension.u8string()));
 #else
     auto &extension = _extension;
 #endif
