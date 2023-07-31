@@ -771,7 +771,7 @@ inline void ImGui::FileBrowser::SetTypeFilters(
 #endif
 
     // insert auto-generated filter
-
+    hasAllFilter_ = false;
     if(typeFilters.size() > 1)
     {
         hasAllFilter_  = true;
