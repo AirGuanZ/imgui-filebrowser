@@ -27,6 +27,7 @@ enum ImGuiFileBrowserFlags_
     ImGuiFileBrowserFlags_CloseOnEsc        = 1 << 5, // close file browser when pressing 'ESC'
     ImGuiFileBrowserFlags_CreateNewDir      = 1 << 6, // allow user to create new directory
     ImGuiFileBrowserFlags_MultipleSelection = 1 << 7, // allow user to select multiple files. this will hide ImGuiFileBrowserFlags_EnterNewFilename
+    ImGuiFileBrowserFlags_HideRegularFiles  = 1 << 8, // hide regular files when ImGuiFileBrowserFlags_SelectDirectory is enabled
 };
 
 namespace ImGui
@@ -504,14 +505,24 @@ inline void ImGui::FileBrowser::Display()
     if(!(flags_ & ImGuiFileBrowserFlags_SelectDirectory) &&
        (flags_ & ImGuiFileBrowserFlags_EnterNewFilename))
         reserveHeight += GetFrameHeightWithSpacing();
+
     {
         BeginChild("ch", ImVec2(0, -reserveHeight), true,
             (flags_ & ImGuiFileBrowserFlags_NoModal) ?
                 ImGuiWindowFlags_AlwaysHorizontalScrollbar : 0);
         ScopeGuard endChild([] { EndChild(); });
 
+        const bool shouldHideRegularFiles =
+            (flags_ & ImGuiFileBrowserFlags_HideRegularFiles) &&
+            (flags_ & ImGuiFileBrowserFlags_SelectDirectory);
+
         for(auto &rsc : fileRecords_)
         {
+            if(!rsc.isDir && shouldHideRegularFiles)
+            {
+                continue;
+            }
+
             if(!rsc.isDir && !IsExtensionMatched(rsc.extension))
             {
                 continue;
