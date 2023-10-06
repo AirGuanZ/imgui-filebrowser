@@ -544,17 +544,13 @@ inline void ImGui::FileBrowser::Display()
             if(Selectable(rsc.showName.c_str(), selected,
                           ImGuiSelectableFlags_DontClosePopups))
             {
-                const bool canSelect =
-                    rsc.name != ".." &&
-                    (rsc.isDir && (flags_ & ImGuiFileBrowserFlags_SelectDirectory)) ||
-                    (!rsc.isDir && !(flags_ & ImGuiFileBrowserFlags_SelectDirectory));
-
+                const bool wantDir = flags_ & ImGuiFileBrowserFlags_SelectDirectory;
+                const bool canSelect = rsc.name != ".." && rsc.isDir == wantDir;
                 const bool rangeSelect =
                     canSelect && GetIO().KeyShift &&
                     rangeSelectionStart_ < fileRecords_.size() &&
                     (flags_ & ImGuiFileBrowserFlags_MultipleSelection) &&
                     IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
-
                 const bool multiSelect =
                     !rangeSelect && GetIO().KeyCtrl &&
                     (flags_ & ImGuiFileBrowserFlags_MultipleSelection) &&
@@ -562,11 +558,19 @@ inline void ImGui::FileBrowser::Display()
 
                 if(rangeSelect)
                 {
-                    const int first = (std::min)(rangeSelectionStart_, rscIndex);
-                    const int last = (std::max(rangeSelectionStart_, rscIndex));
+                    const unsigned int first = (std::min)(rangeSelectionStart_, rscIndex);
+                    const unsigned int last = (std::max)(rangeSelectionStart_, rscIndex);
                     selectedFilenames_.clear();
-                    for(int i = first; i <= last; ++i)
+                    for(unsigned int i = first; i <= last; ++i)
                     {
+                        if(fileRecords_[i].isDir != wantDir)
+                        {
+                            continue;
+                        }
+                        if(!wantDir && !IsExtensionMatched(fileRecords_[i].extension))
+                        {
+                            continue;
+                        }
                         selectedFilenames_.insert(fileRecords_[i].name);
                     }
                 }
@@ -575,6 +579,7 @@ inline void ImGui::FileBrowser::Display()
                     if(!multiSelect)
                     {
                         selectedFilenames_ = { rsc.name };
+                        rangeSelectionStart_ = rscIndex;
                     }
                     else
                     {
@@ -969,6 +974,10 @@ inline void ImGui::FileBrowser::ClearRangeSelectionState()
     {
         if(fileRecords_[i].isDir == dir)
         {
+            if(!dir && !IsExtensionMatched(fileRecords_[i].extension))
+            {
+                continue;
+            }
             rangeSelectionStart_ = i;
             break;
         }
