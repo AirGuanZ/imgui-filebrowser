@@ -101,10 +101,10 @@ ImGuiFileBrowserFlags_SelectDirectory | ImGuiFileBrowserFlags_HideRegularFiles
 ## Usage
 
 * double click to enter a directory
-* single click to (de)select a regular file (or directory, when `ImGuiFileBrowserFlags_SelectDirectory` is enabled)
-*  When `ImGuiFileBrowserFlags_SelectDirectory` is enabled and no directory is selected, click `ok` to choose the current directory as selected result
-*  When `ImGuiFileBrowserFlags_MultipleSelection` is enabled, hold `Shift` or `Ctrl` to select more than one file
-*  When `ImGuiFileBrowserFlags_CreateNewDir` is enabled, click the top-right little button "+" to create a new directory
+* single click to (de)select a regular file (or directory, when `ImGuiFileBrowserFlags_SelectDirectory` is enabled).
+*  When `ImGuiFileBrowserFlags_SelectDirectory` is enabled and no directory is selected, click `ok` to choose the current directory as selected result.
+*  When `ImGuiFileBrowserFlags_MultipleSelection` is enabled, hold  `Ctrl` for multi selection and `Shift` for range selection.  
+*  When `ImGuiFileBrowserFlags_CreateNewDir` is enabled, click the top-right little button "+" to create a new directory.
 *  When `ImGuiFileBrowserFlags_SelectDirectory` is not specified,  double click to choose a regular file as selected result.
 
 ## Type Filters

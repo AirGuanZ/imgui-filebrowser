@@ -131,6 +131,8 @@ namespace ImGui
 
         bool IsExtensionMatched(const std::filesystem::path &extension) const;
 
+        void ClearRangeSelectionState();
+
 #ifdef _WIN32
         static std::uint32_t GetDrivesBitMask();
 #endif
@@ -165,6 +167,7 @@ namespace ImGui
 
         std::filesystem::path pwd_;
         std::set<std::filesystem::path> selectedFilenames_;
+        unsigned int rangeSelectionStart_; // enable range selection when shift is pressed
 
         std::vector<FileRecord> fileRecords_;
 
@@ -184,7 +187,7 @@ namespace ImGui
 inline ImGui::FileBrowser::FileBrowser(ImGuiFileBrowserFlags flags)
     : width_(700), height_(450), posX_(0), posY_(0), flags_(flags),
       openFlag_(false), closeFlag_(false), isOpened_(false), ok_(false), posIsSet_(false),
-      inputNameBuf_(std::make_unique<std::array<char, INPUT_NAME_BUF_SIZE>>())
+      rangeSelectionStart_(0), inputNameBuf_(std::make_unique<std::array<char, INPUT_NAME_BUF_SIZE>>())
 {
     if(flags_ & ImGuiFileBrowserFlags_CreateNewDir)
     {
@@ -236,8 +239,9 @@ inline ImGui::FileBrowser &ImGui::FileBrowser::operator=(
     typeFilterIndex_ = copyFrom.typeFilterIndex_;
     hasAllFilter_    = copyFrom.hasAllFilter_;
 
-    pwd_               = copyFrom.pwd_;
-    selectedFilenames_ = copyFrom.selectedFilenames_;
+    pwd_                 = copyFrom.pwd_;
+    selectedFilenames_   = copyFrom.selectedFilenames_;
+    rangeSelectionStart_ = copyFrom.rangeSelectionStart_;
 
     fileRecords_ = copyFrom.fileRecords_;
 
@@ -283,8 +287,8 @@ inline void ImGui::FileBrowser::SetTitle(std::string title)
 
 inline void ImGui::FileBrowser::Open()
 {
-    ClearSelected();
     UpdateFileRecords();
+    ClearSelected();
     statusStr_ = std::string();
     openFlag_ = true;
     closeFlag_ = false;
@@ -323,18 +327,22 @@ inline void ImGui::FileBrowser::Display()
 
     if(openFlag_ && (flags_ & ImGuiFileBrowserFlags_NoModal))
     {
-        if (posIsSet_)
+        if(posIsSet_)
+        {
             SetNextWindowPos(
                     ImVec2(static_cast<float>(posX_), static_cast<float>(posY_)));
+        }
         SetNextWindowSize(
             ImVec2(static_cast<float>(width_), static_cast<float>(height_)));
     }
     else
     {
-        if (posIsSet_)
+        if(posIsSet_)
+        {
             SetNextWindowPos(
                     ImVec2(static_cast<float>(posX_), static_cast<float>(posY_)),
                     ImGuiCond_FirstUseEver);
+        }
         SetNextWindowSize(
             ImVec2(static_cast<float>(width_), static_cast<float>(height_)),
             ImGuiCond_FirstUseEver);
@@ -453,7 +461,6 @@ inline void ImGui::FileBrowser::Display()
             {
                 return name == record.name;
             });
-
             if(it != fileRecords_.end())
             {
                 newSelectedFilenames.insert(name);
@@ -516,74 +523,88 @@ inline void ImGui::FileBrowser::Display()
             (flags_ & ImGuiFileBrowserFlags_HideRegularFiles) &&
             (flags_ & ImGuiFileBrowserFlags_SelectDirectory);
 
-        for(auto &rsc : fileRecords_)
+        for(unsigned int rscIndex = 0; rscIndex < fileRecords_.size(); ++rscIndex)
         {
+            auto &rsc = fileRecords_[rscIndex];
             if(!rsc.isDir && shouldHideRegularFiles)
             {
                 continue;
             }
-
             if(!rsc.isDir && !IsExtensionMatched(rsc.extension))
             {
                 continue;
             }
-
             if(!rsc.name.empty() && rsc.name.c_str()[0] == '$')
             {
                 continue;
             }
 
-            bool selected = selectedFilenames_.find(rsc.name)
-                         != selectedFilenames_.end();
-
+            const bool selected = selectedFilenames_.find(rsc.name)
+                               != selectedFilenames_.end();
             if(Selectable(rsc.showName.c_str(), selected,
                           ImGuiSelectableFlags_DontClosePopups))
             {
-                const bool multiSelect =
-                    (flags_ & ImGuiFileBrowserFlags_MultipleSelection) &&
-                    IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
-                    (GetIO().KeyCtrl || GetIO().KeyShift);
+                const bool canSelect =
+                    rsc.name != ".." &&
+                    (rsc.isDir && (flags_ & ImGuiFileBrowserFlags_SelectDirectory)) ||
+                    (!rsc.isDir && !(flags_ & ImGuiFileBrowserFlags_SelectDirectory));
 
-                if(selected)
+                const bool rangeSelect =
+                    canSelect && GetIO().KeyShift &&
+                    rangeSelectionStart_ < fileRecords_.size() &&
+                    (flags_ & ImGuiFileBrowserFlags_MultipleSelection) &&
+                    IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+
+                const bool multiSelect =
+                    !rangeSelect && GetIO().KeyCtrl &&
+                    (flags_ & ImGuiFileBrowserFlags_MultipleSelection) &&
+                    IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+
+                if(rangeSelect)
+                {
+                    const int first = (std::min)(rangeSelectionStart_, rscIndex);
+                    const int last = (std::max(rangeSelectionStart_, rscIndex));
+                    selectedFilenames_.clear();
+                    for(int i = first; i <= last; ++i)
+                    {
+                        selectedFilenames_.insert(fileRecords_[i].name);
+                    }
+                }
+                else if(selected)
                 {
                     if(!multiSelect)
                     {
-                        selectedFilenames_.clear();
+                        selectedFilenames_ = { rsc.name };
                     }
                     else
                     {
                         selectedFilenames_.erase(rsc.name);
                     }
-
                     (*inputNameBuf_)[0] = '\0';
                 }
-                else if(rsc.name != "..")
+                else if(canSelect)
                 {
-                    if((rsc.isDir && (flags_ & ImGuiFileBrowserFlags_SelectDirectory)) ||
-                       (!rsc.isDir && !(flags_ & ImGuiFileBrowserFlags_SelectDirectory)))
+                    if(multiSelect)
                     {
-                        if(multiSelect)
-                        {
-                            selectedFilenames_.insert(rsc.name);
-                        }
-                        else
-                        {
-                            selectedFilenames_ = { rsc.name };
-                        }
-
-                        if(!(flags_ & ImGuiFileBrowserFlags_SelectDirectory))
-                        {
-#ifdef _MSC_VER
-                            strcpy_s(
-                                inputNameBuf_->data(), inputNameBuf_->size(),
-                                u8StrToStr(rsc.name.u8string()).c_str());
-#else
-                            std::strncpy(inputNameBuf_->data(),
-                                         u8StrToStr(rsc.name.u8string()).c_str(),
-                                         inputNameBuf_->size() - 1);
-#endif
-                        }
+                        selectedFilenames_.insert(rsc.name);
                     }
+                    else
+                    {
+                        selectedFilenames_ = { rsc.name };
+                    }
+                    if(!(flags_ & ImGuiFileBrowserFlags_SelectDirectory))
+                    {
+#ifdef _MSC_VER
+                        strcpy_s(
+                            inputNameBuf_->data(), inputNameBuf_->size(),
+                            u8StrToStr(rsc.name.u8string()).c_str());
+#else
+                        std::strncpy(inputNameBuf_->data(),
+                            u8StrToStr(rsc.name.u8string()).c_str(),
+                            inputNameBuf_->size() - 1);
+#endif
+                    }
+                    rangeSelectionStart_ = rscIndex;
                 }
                 else
                 {
@@ -600,7 +621,7 @@ inline void ImGui::FileBrowser::Display()
                 {
                     setNewPwd = true;
                     newPwd = (rsc.name != "..") ? (pwd_ / rsc.name) :
-                                                   pwd_.parent_path();
+                                                      pwd_.parent_path();
                 }
                 else if(!(flags_ & ImGuiFileBrowserFlags_SelectDirectory))
                 {
@@ -884,6 +905,8 @@ inline void ImGui::FileBrowser::UpdateFileRecords()
     {
         return (L.isDir ^ R.isDir) ? L.isDir : (L.name < R.name);
     });
+
+    ClearRangeSelectionState();
 }
 
 inline void ImGui::FileBrowser::SetPwdUncatched(const std::filesystem::path &pwd)
@@ -936,6 +959,20 @@ inline bool ImGui::FileBrowser::IsExtensionMatched(
 
     // regular filter
     return extension == typeFilters_[typeFilterIndex_];
+}
+
+inline void ImGui::FileBrowser::ClearRangeSelectionState()
+{
+    rangeSelectionStart_ = 9999999;
+    const bool dir = flags_ & ImGuiFileBrowserFlags_SelectDirectory;
+    for(unsigned int i = 1; i < fileRecords_.size(); ++i)
+    {
+        if(fileRecords_[i].isDir == dir)
+        {
+            rangeSelectionStart_ = i;
+            break;
+        }
+    }
 }
 
 #if defined(__cpp_lib_char8_t)
