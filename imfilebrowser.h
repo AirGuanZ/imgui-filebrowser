@@ -28,6 +28,7 @@ enum ImGuiFileBrowserFlags_
     ImGuiFileBrowserFlags_CreateNewDir      = 1 << 6, // allow user to create new directory
     ImGuiFileBrowserFlags_MultipleSelection = 1 << 7, // allow user to select multiple files. this will hide ImGuiFileBrowserFlags_EnterNewFilename
     ImGuiFileBrowserFlags_HideRegularFiles  = 1 << 8, // hide regular files when ImGuiFileBrowserFlags_SelectDirectory is enabled
+    ImGuiFileBrowserFlags_ConfirmOnEnter    = 1 << 9, // confirm selection when pressnig 'ENTER'
 };
 
 namespace ImGui
@@ -473,6 +474,7 @@ inline void ImGui::FileBrowser::Display()
         }
     }
 
+    bool focusOnInputText = false;
     if(newDirNameBuf_)
     {
         SameLine();
@@ -487,6 +489,7 @@ inline void ImGui::FileBrowser::Display()
             ScopeGuard endNewDirPopup([] { EndPopup(); });
 
             InputText("name", newDirNameBuf_->data(), newDirNameBuf_->size());
+            focusOnInputText |= IsItemFocused();
             SameLine();
 
             if(Button("ok") && (*newDirNameBuf_)[0] != '\0')
@@ -655,12 +658,38 @@ inline void ImGui::FileBrowser::Display()
         {
             selectedFilenames_ = { inputNameBuf_->data() };
         }
+        focusOnInputText |= IsItemFocused();
         PopItemWidth();
     }
 
+    if(!focusOnInputText)
+    {
+        const bool selectAll = (flags_ & ImGuiFileBrowserFlags_MultipleSelection) &&
+                               IsKeyPressed(ImGuiKey_A) && (IsKeyDown(ImGuiKey_LeftCtrl) ||
+                               IsKeyDown(ImGuiKey_RightCtrl));
+        if(selectAll)
+        {
+            const bool needDir = flags_ & ImGuiFileBrowserFlags_SelectDirectory;
+            selectedFilenames_.clear();
+            for(size_t i = 1; i < fileRecords_.size(); ++i)
+            {
+                auto &record = fileRecords_[i];
+                if(record.isDir == needDir &&
+                   (needDir || IsExtensionMatched(record.extension)))
+                {
+                    selectedFilenames_.insert(record.name);
+                }
+            }
+        }
+    }
+
+    const bool enter =
+        (flags_ & ImGuiFileBrowserFlags_ConfirmOnEnter) &&
+        IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+        IsKeyPressed(ImGuiKey_Enter);
     if(!(flags_ & ImGuiFileBrowserFlags_SelectDirectory))
     {
-        if(Button(" ok ") && !selectedFilenames_.empty())
+        if((Button(" ok ") || enter) && !selectedFilenames_.empty())
         {
             ok_ = true;
             CloseCurrentPopup();
@@ -668,7 +697,7 @@ inline void ImGui::FileBrowser::Display()
     }
     else
     {
-        if(Button(" ok "))
+        if(Button(" ok ") || enter)
         {
             ok_ = true;
             CloseCurrentPopup();
