@@ -67,7 +67,7 @@ namespace ImGui
         // display the browsing window if opened
         void Display();
 
-        // returns true when there is a selected filename and the "ok" button was clicked
+        // returns true when there is a selected filename
         bool HasSelected() const noexcept;
 
         // set current browsing directory
