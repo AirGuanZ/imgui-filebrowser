@@ -65,16 +65,18 @@ Various options can be combined with '|' and passed to the constructor:
 ```cpp
 enum ImGuiFileBrowserFlags_
 {
-    ImGuiFileBrowserFlags_SelectDirectory   = 1 << 0, // select directory instead of regular file
-    ImGuiFileBrowserFlags_EnterNewFilename  = 1 << 1, // allow user to enter new filename when selecting regular file
-    ImGuiFileBrowserFlags_NoModal           = 1 << 2, // file browsing window is modal by default. specify this to use a popup window
-    ImGuiFileBrowserFlags_NoTitleBar        = 1 << 3, // hide window title bar
-    ImGuiFileBrowserFlags_NoStatusBar       = 1 << 4, // hide status bar at the bottom of browsing window
-    ImGuiFileBrowserFlags_CloseOnEsc        = 1 << 5, // close file browser when pressing 'ESC'
-    ImGuiFileBrowserFlags_CreateNewDir      = 1 << 6, // allow user to create new directory
-    ImGuiFileBrowserFlags_MultipleSelection = 1 << 7, // allow user to select multiple files. this will hide ImGuiFileBrowserFlags_EnterNewFilename
-    ImGuiFileBrowserFlags_HideRegularFiles  = 1 << 8, // hide regular files when ImGuiFileBrowserFlags_SelectDirectory is enabled
-    ImGuiFileBrowserFlags_ConfirmOnEnter    = 1 << 9, // confirm selection when pressnig 'ENTER'
+    ImGuiFileBrowserFlags_SelectDirectory       = 1 << 0, // select directory instead of regular file
+    ImGuiFileBrowserFlags_EnterNewFilename      = 1 << 1, // allow user to enter new filename when selecting regular file
+    ImGuiFileBrowserFlags_NoModal               = 1 << 2, // file browsing window is modal by default. specify this to use a popup window
+    ImGuiFileBrowserFlags_NoTitleBar            = 1 << 3, // hide window title bar
+    ImGuiFileBrowserFlags_NoStatusBar           = 1 << 4, // hide status bar at the bottom of browsing window
+    ImGuiFileBrowserFlags_CloseOnEsc            = 1 << 5, // close file browser when pressing 'ESC'
+    ImGuiFileBrowserFlags_CreateNewDir          = 1 << 6, // allow user to create new directory
+    ImGuiFileBrowserFlags_MultipleSelection     = 1 << 7, // allow user to select multiple files. this will hide ImGuiFileBrowserFlags_EnterNewFilename
+    ImGuiFileBrowserFlags_HideRegularFiles      = 1 << 8, // hide regular files when ImGuiFileBrowserFlags_SelectDirectory is enabled
+    ImGuiFileBrowserFlags_ConfirmOnEnter        = 1 << 9, // confirm selection when pressnig 'ENTER'
+    ImGuiFileBrowserFlags_SkipItemsCausingError = 1 << 10, // when entering a new directory, any error will interrupt the process, causing the file browser to fall back to the working directory.
+                                                           // with this flag, if an error is caused by a specific item in the directory, that item will be skipped, allowing the process to continue.
 };
 ```
 
