@@ -31,6 +31,7 @@ enum ImGuiFileBrowserFlags_
     ImGuiFileBrowserFlags_ConfirmOnEnter        = 1 << 9,  // confirm selection when pressing 'ENTER'
     ImGuiFileBrowserFlags_SkipItemsCausingError = 1 << 10, // when entering a new directory, any error will interrupt the process, causing the file browser to fall back to the working directory.
                                                            // with this flag, if an error is caused by a specific item in the directory, that item will be skipped, allowing the process to continue.
+    ImGuiFileBrowserFlags_NoPopup               = 1 << 11
 };
 
 namespace ImGui
@@ -150,6 +151,10 @@ namespace ImGui
         bool IsExtensionMatched(const std::filesystem::path &extension) const;
 
         void ClearRangeSelectionState();
+
+        bool NoPopup() const { return flags_ & ImGuiFileBrowserFlags_NoPopup; }
+
+        void CloseBrowserWindow();
 
 #ifdef _WIN32
         static std::uint32_t GetDrivesBitMask();
@@ -341,11 +346,14 @@ inline void ImGui::FileBrowser::Display()
         PopID();
     });
 
-    if(shouldOpen_)
+    if(!NoPopup())
     {
-        OpenPopup(openLabel_.c_str());
+        if(shouldOpen_)
+        {
+            OpenPopup(openLabel_.c_str());
+        }
+        isOpened_ = false;
     }
-    isOpened_ = false;
 
     // open the popup window
 
@@ -365,21 +373,56 @@ inline void ImGui::FileBrowser::Display()
         }
         SetNextWindowSize(ImVec2(static_cast<float>(width_), static_cast<float>(height_)), ImGuiCond_FirstUseEver);
     }
-    if(flags_ & ImGuiFileBrowserFlags_NoModal)
+
+    if(NoPopup())
     {
-        if(!BeginPopup(openLabel_.c_str()))
+        if(shouldOpen_)
+        {
+            isOpened_ = true;
+        }
+        if(isOpened_)
+        {
+            if(!ImGui::Begin(
+                openLabel_.c_str(), nullptr,
+                flags_ & ImGuiFileBrowserFlags_NoTitleBar ? ImGuiWindowFlags_NoTitleBar : 0))
+            {
+                ImGui::End();
+                return;
+            }
+        }
+        else
         {
             return;
         }
     }
-    else if(!BeginPopupModal(openLabel_.c_str(), nullptr,
-                             flags_ & ImGuiFileBrowserFlags_NoTitleBar ? ImGuiWindowFlags_NoTitleBar : 0))
+    else
     {
-        return;
+        if(flags_ & ImGuiFileBrowserFlags_NoModal)
+        {
+            if(!BeginPopup(openLabel_.c_str()))
+            {
+                return;
+            }
+        }
+        else if(!BeginPopupModal(openLabel_.c_str(), nullptr,
+                                 flags_ & ImGuiFileBrowserFlags_NoTitleBar ? ImGuiWindowFlags_NoTitleBar : 0))
+        {
+            return;
+        }
+        isOpened_ = true;
     }
 
-    isOpened_ = true;
-    ScopeGuard endPopup([] { EndPopup(); });
+    ScopeGuard endPopup([&]
+    {
+        if(NoPopup())
+        {
+            ImGui::End();
+        }
+        else
+        {
+            EndPopup();
+        }
+    });
 
     // display elements in pwd
 
@@ -643,7 +686,7 @@ inline void ImGui::FileBrowser::Display()
                 {
                     selectedFilenames_ = { rsc.name };
                     isOk_ = true;
-                    CloseCurrentPopup();
+                    CloseBrowserWindow();
                 }
             }
         }
@@ -698,7 +741,7 @@ inline void ImGui::FileBrowser::Display()
         if((Button(" ok ") || isEnterPressed) && !selectedFilenames_.empty())
         {
             isOk_ = true;
-            CloseCurrentPopup();
+            CloseBrowserWindow();
         }
     }
     else
@@ -706,7 +749,7 @@ inline void ImGui::FileBrowser::Display()
         if(Button(" ok ") || isEnterPressed)
         {
             isOk_ = true;
-            CloseCurrentPopup();
+            CloseBrowserWindow();
         }
     }
 
@@ -719,7 +762,7 @@ inline void ImGui::FileBrowser::Display()
         IsKeyPressed(ImGuiKey_Escape));
     if(shouldClose)
     {
-        CloseCurrentPopup();
+        CloseBrowserWindow();
     }
 
     if(!statusStr_.empty() && !(flags_ & ImGuiFileBrowserFlags_NoStatusBar))
@@ -1021,6 +1064,18 @@ inline void ImGui::FileBrowser::ClearRangeSelectionState()
             rangeSelectionStart_ = i;
             break;
         }
+    }
+}
+
+void ImGui::FileBrowser::CloseBrowserWindow()
+{
+    if(NoPopup())
+    {
+        isOpened_ = false;
+    }
+    else
+    {
+        CloseCurrentPopup();
     }
 }
 
