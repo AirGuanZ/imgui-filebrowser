@@ -162,6 +162,8 @@ namespace ImGui
 #endif
         static std::string u8StrToStr(std::string s);
 
+        static std::filesystem::path u8StrToPath(const char *str);
+
         int width_;
         int height_;
         int posX_;
@@ -485,7 +487,7 @@ inline void ImGui::FileBrowser::Display()
 
         if(inputNameBuf_ && (*inputNameBuf_)[0])
         {
-            newSelectedFilenames.insert(inputNameBuf_->data());
+            newSelectedFilenames.insert(u8StrToPath(inputNameBuf_->data()));
         }
     }
 
@@ -510,7 +512,7 @@ inline void ImGui::FileBrowser::Display()
             if(Button("ok") && (*newDirNameBuf_)[0] != '\0')
             {
                 ScopeGuard closeNewDirPopup([] { CloseCurrentPopup(); });
-                if(create_directory(currentDirectory_ / newDirNameBuf_->data()))
+                if(create_directory(currentDirectory_ / u8StrToPath(newDirNameBuf_->data())))
                 {
                     UpdateFileRecords();
                 }
@@ -662,7 +664,7 @@ inline void ImGui::FileBrowser::Display()
         PushItemWidth(-1);
         if(InputText("", inputNameBuf_->data(), inputNameBuf_->size()) && inputNameBuf_->at(0) != '\0')
         {
-            selectedFilenames_ = { inputNameBuf_->data() };
+            selectedFilenames_ = { u8StrToPath(inputNameBuf_->data()) };
         }
         focusOnInputText |= IsItemFocused();
         PopItemWidth();
@@ -887,7 +889,7 @@ inline void ImGui::FileBrowser::SetInputName(std::string_view input)
         }
         std::copy(input.begin(), input.end(), inputNameBuf_->begin());
         inputNameBuf_->at(input.size()) = '\0';
-        selectedFilenames_ = { inputNameBuf_->data() };
+        selectedFilenames_ = { u8StrToPath(inputNameBuf_->data()) };
     }
 }
 
@@ -1027,13 +1029,32 @@ inline void ImGui::FileBrowser::ClearRangeSelectionState()
 #if defined(__cpp_lib_char8_t)
 inline std::string ImGui::FileBrowser::u8StrToStr(std::u8string s)
 {
-    return std::string(s.begin(), s.end());
+    std::string result;
+    result.resize(s.length());
+    std::memcpy(result.data(), s.data(), s.length());
+    return result;
 }
 #endif
 
 inline std::string ImGui::FileBrowser::u8StrToStr(std::string s)
 {
     return s;
+}
+
+inline std::filesystem::path ImGui::FileBrowser::u8StrToPath(const char *str)
+{
+#if defined(__cpp_lib_char8_t)
+    // With C++20/23, it's impossible to efficiently convert a `char*` string to a `char8_t*` string without violating
+    // the strict aliasing rule. Bad joke!
+    const size_t len = std::strlen(str);
+    std::u8string u8Str;
+    u8Str.resize(len);
+    std::memcpy(u8Str.data(), str, len);
+    return std::filesystem::path(u8Str);
+#else
+    // u8path is deprecated in C++20
+    return std::filesystem::u8path(str);
+#endif
 }
 
 #ifdef _WIN32
