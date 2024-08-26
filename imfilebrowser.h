@@ -646,6 +646,21 @@ inline void ImGui::FileBrowser::Display()
                     CloseCurrentPopup();
                 }
             }
+            else if(IsKeyPressed(ImGuiKey_GamepadFaceDown) && IsItemHovered()) 
+            {
+                if(rsc.isDir)
+                {
+                    shouldSetNewDir = true;
+                    newDir = (rsc.name != "..") ? (currentDirectory_ / rsc.name) : currentDirectory_.parent_path();
+                    SetKeyboardFocusHere(-1);
+                }
+                else if(!(flags_ & ImGuiFileBrowserFlags_SelectDirectory))
+                {
+                    selectedFilenames_ = { rsc.name };
+                    isOk_ = true;
+                    CloseCurrentPopup();
+                }
+            }
         }
     }
 
