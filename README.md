@@ -77,6 +77,7 @@ enum ImGuiFileBrowserFlags_
     ImGuiFileBrowserFlags_ConfirmOnEnter        = 1 << 9, // confirm selection when pressnig 'ENTER'
     ImGuiFileBrowserFlags_SkipItemsCausingError = 1 << 10, // when entering a new directory, any error will interrupt the process, causing the file browser to fall back to the working directory.
                                                            // with this flag, if an error is caused by a specific item in the directory, that item will be skipped, allowing the process to continue.
+    ImGuiFileBrowserFlags_EditPathString        = 1 << 11, // allow user to directly edit the whole path string
 };
 ```
 
@@ -85,7 +86,7 @@ When `ImGuiFileBrowserFlags_MultipleSelection` is enabled, use `fileBrowser.GetM
 Here are some common examples:
 
 ```cpp
-// select single regular file for opening
+// (default) select single regular file for opening
 0
 // select multiple regular files for opening
 ImGuiFileBrowserFlags_MultipleSelection
@@ -103,19 +104,21 @@ ImGuiFileBrowserFlags_SelectDirectory | ImGuiFileBrowserFlags_HideRegularFiles
 
 ## Usage
 
-* double click to enter a directory
-* single click to (de)select a regular file (or directory, when `ImGuiFileBrowserFlags_SelectDirectory` is enabled).
-*  When `ImGuiFileBrowserFlags_SelectDirectory` is enabled and no directory is selected, click `ok` to choose the current directory as selected result.
+* When `ImGuiFileBrowserFlags_EditPathString` is set, click the top-right button `#` to directly edit the current directory.
+* Click the top-right button `*` to refresh.
+* Double click to enter a directory.
+* Single click to (de)select a regular file (or directory, if `ImGuiFileBrowserFlags_SelectDirectory` is enabled).
+*  When `ImGuiFileBrowserFlags_SelectDirectory` is enabled and no item is selected, click `ok` to choose the current directory as selected result.
 *  When `ImGuiFileBrowserFlags_MultipleSelection` is enabled, hold  `Ctrl` for multi selection and `Shift` for range selection.  
 *  When `ImGuiFileBrowserFlags_MultipleSelection` is enabled, use `Ctrl + A` to select all (filtered) items.
-*  When `ImGuiFileBrowserFlags_CreateNewDir` is enabled, click the top-right little button "+" to create a new directory.
+*  When `ImGuiFileBrowserFlags_CreateNewDir` is enabled, click the top-right button `+` to create a new directory.
 *  When `ImGuiFileBrowserFlags_SelectDirectory` is not specified,  double click to choose a regular file as selected result.
 
 ## Type Filters
 
-* (optionally) use `browser.SetTypeFilters({".h", ".cpp"})` to set file extension filters.
-* ".*" matches with any extension
-* filters are case-insensitive on Windows platform
+* Use `SetTypeFilters({".h", ".cpp"})` to set file extension filters.
+* `.*` matches with any extension
+* Filters are case-insensitive on Windows platform
 
 ## Note
 

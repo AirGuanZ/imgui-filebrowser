@@ -30,6 +30,7 @@ enum ImGuiFileBrowserFlags_ : std::uint32_t
     ImGuiFileBrowserFlags_ConfirmOnEnter        = 1 << 9,  // confirm selection when pressing 'ENTER'
     ImGuiFileBrowserFlags_SkipItemsCausingError = 1 << 10, // when entering a new directory, any error will interrupt the process, causing the file browser to fall back to the working directory.
                                                            // with this flag, if an error is caused by a specific item in the directory, that item will be skipped, allowing the process to continue.
+    ImGuiFileBrowserFlags_EditPathString        = 1 << 11, // allow user to directly edit the whole path string
 };
 
 namespace ImGui
@@ -143,6 +144,10 @@ namespace ImGui
 
         void SetCurrentDirectoryUncatched(const std::filesystem::path &pwd);
 
+        bool SetCurrentDirectoryInternal(
+            const std::filesystem::path &dir,
+            const std::filesystem::path &preferredFallback);
+
         bool IsExtensionMatched(const std::filesystem::path &extension) const;
 
         void ClearRangeSelectionState();
@@ -194,6 +199,10 @@ namespace ImGui
         std::vector<char> newDirNameBuffer_;
         std::vector<char> inputNameBuffer_;
 
+        bool              editDir_;
+        bool              setFocusToEditDir_;
+        std::vector<char> currDirBuffer_;
+
 #ifdef _WIN32
         std::uint32_t drives_;
 #endif
@@ -213,6 +222,8 @@ inline ImGui::FileBrowser::FileBrowser(ImGuiFileBrowserFlags flags, std::filesys
     , isOk_(false)
     , isPosSet_(false)
     , rangeSelectionStart_(0)
+    , editDir_(false)
+    , setFocusToEditDir_(false)
 {
     assert(!((flags_ & ImGuiFileBrowserFlags_SelectDirectory) && (flags_ & ImGuiFileBrowserFlags_EnterNewFilename)) &&
            "'EnterNewFilename' doesn't work when 'SelectDirectory' is enabled");
@@ -277,6 +288,9 @@ inline ImGui::FileBrowser &ImGui::FileBrowser::operator=(
     newDirNameBuffer_ = copyFrom.newDirNameBuffer_;
     inputNameBuffer_  = copyFrom.inputNameBuffer_;
 
+    editDir_ = copyFrom.editDir_;
+    currDirBuffer_ = copyFrom.currDirBuffer_;
+
 #ifdef _WIN32
     drives_ = copyFrom.drives_;
 #endif
@@ -301,8 +315,10 @@ inline void ImGui::FileBrowser::SetWindowSize(int width, int height) noexcept
 inline void ImGui::FileBrowser::SetTitle(std::string title)
 {
     title_ = std::move(title);
-    openLabel_ = title_ + "##filebrowser_" + std::to_string(reinterpret_cast<size_t>(this));
-    openNewDirLabel_ = "new dir##new_dir_" + std::to_string(reinterpret_cast<size_t>(this));
+
+    const std::string thisPtrStr = std::to_string(reinterpret_cast<size_t>(this));
+    openLabel_ = title_ + "##filebrowser_" + thisPtrStr;
+    openNewDirLabel_ = "new dir##new_dir_" + thisPtrStr;
 }
 
 inline void ImGui::FileBrowser::Open()
@@ -377,90 +393,149 @@ inline void ImGui::FileBrowser::Display()
     isOpened_ = true;
     ScopeGuard endPopup([] { EndPopup(); });
 
-    // display elements in pwd
+    std::filesystem::path newDir; bool shouldSetNewDir = false;
 
-#ifdef _WIN32
-    const char currentDrive = static_cast<char>(currentDirectory_.c_str()[0]);
-    const char driveStr[] = { currentDrive, ':', '\0' };
-
-    PushItemWidth(4 * GetFontSize());
-    if(BeginCombo("##select_drive", driveStr))
+    if(editDir_)
     {
-        ScopeGuard guard([&] { EndCombo(); });
-
-        for(int i = 0; i < 26; ++i)
+        if(setFocusToEditDir_) // Automatically set the text box to be focused on appearing
         {
-            if(!(drives_ & (1 << i)))
+            SetKeyboardFocusHere();
+        }
+
+        PushItemWidth(-1);
+        const bool enter = InputText(
+            "##directory", currDirBuffer_.data(), currDirBuffer_.size(),
+            ImGuiInputTextFlags_CallbackResize | ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll,
+            ExpandInputBuffer, &currDirBuffer_);
+        PopItemWidth();
+
+        if(!IsItemActive() && !setFocusToEditDir_)
+        {
+            editDir_ = false;
+        }
+        setFocusToEditDir_ = false;
+
+        if(enter)
+        {
+            std::filesystem::path enteredDir = u8StrToPath(currDirBuffer_.data());
+            if(is_directory(enteredDir))
             {
-                continue;
+                newDir = std::move(enteredDir);
+                shouldSetNewDir = true;
             }
-
-            const char driveCh = static_cast<char>('A' + i);
-            const char selectableStr[] = { driveCh, ':', '\0' };
-            const bool selected = currentDrive == driveCh;
-
-            if(Selectable(selectableStr, selected) && !selected)
+            else if(is_directory(enteredDir.parent_path()))
             {
-                char newPwd[] = { driveCh, ':', '\\', '\0' };
-                SetCurrentDirectory(newPwd);
+                newDir = enteredDir.parent_path();
+                shouldSetNewDir = true;
+            }
+            else
+            {
+                statusStr_ = "[" + std::string(currDirBuffer_.data()) + "] is not a valid directory";
             }
         }
     }
-    PopItemWidth();
-
-    SameLine();
-#endif
-
-    int secIdx = 0, newDirLastSecIdx = -1;
-    for(const auto &sec : currentDirectory_)
+    else
     {
+        // display elements in pwd
+
 #ifdef _WIN32
-        if(secIdx == 1)
+        const char currentDrive = static_cast<char>(currentDirectory_.c_str()[0]);
+        const char driveStr[] = { currentDrive, ':', '\0' };
+
+        PushItemWidth(4 * GetFontSize());
+        if(BeginCombo("##select_drive", driveStr))
         {
-            ++secIdx;
-            continue;
+            ScopeGuard guard([&] { EndCombo(); });
+
+            for(int i = 0; i < 26; ++i)
+            {
+                if(!(drives_ & (1 << i)))
+                {
+                    continue;
+                }
+
+                const char driveCh = static_cast<char>('A' + i);
+                const char selectableStr[] = { driveCh, ':', '\0' };
+                const bool selected = currentDrive == driveCh;
+
+                if(Selectable(selectableStr, selected) && !selected)
+                {
+                    char newPwd[] = { driveCh, ':', '\\', '\0' };
+                    SetCurrentDirectory(newPwd);
+                }
+            }
         }
+        PopItemWidth();
+
+        SameLine();
 #endif
 
-        PushID(secIdx);
-        if(secIdx > 0)
-        {
-            SameLine();
-        }
-        if(SmallButton(u8StrToStr(sec.u8string()).c_str()))
-        {
-            newDirLastSecIdx = secIdx;
-        }
-        PopID();
-
-        ++secIdx;
-    }
-
-    if(newDirLastSecIdx >= 0)
-    {
-        int i = 0;
-        std::filesystem::path newDir;
+        int secIdx = 0, newDirLastSecIdx = -1;
         for(const auto &sec : currentDirectory_)
         {
-            if(i++ > newDirLastSecIdx)
-            {
-                break;
-            }
-            newDir /= sec;
-        }
-
 #ifdef _WIN32
-        if(newDirLastSecIdx == 0)
-        {
-            newDir /= "\\";
-        }
+            if(secIdx == 1)
+            {
+                ++secIdx;
+                continue;
+            }
 #endif
 
-        SetCurrentDirectory(newDir);
+            PushID(secIdx);
+            if(secIdx > 0)
+            {
+                SameLine();
+            }
+            if(SmallButton(u8StrToStr(sec.u8string()).c_str()))
+            {
+                newDirLastSecIdx = secIdx;
+            }
+            PopID();
+
+            ++secIdx;
+        }
+
+        if(newDirLastSecIdx >= 0)
+        {
+            int i = 0;
+            std::filesystem::path dstDir;
+            for(const auto &sec : currentDirectory_)
+            {
+                if(i++ > newDirLastSecIdx)
+                {
+                    break;
+                }
+                dstDir /= sec;
+            }
+
+#ifdef _WIN32
+            if(newDirLastSecIdx == 0)
+            {
+                dstDir /= "\\";
+            }
+#endif
+
+            SetCurrentDirectory(dstDir);
+        }
+
+        if(flags_ & ImGuiFileBrowserFlags_EditPathString)
+        {
+            SameLine();
+
+            if(SmallButton("#"))
+            {
+                const auto currDirStr = u8StrToStr(currentDirectory_.u8string());
+                currDirBuffer_.resize(currDirStr.size() + 1);
+                std::memcpy(currDirBuffer_.data(), currDirStr.data(), currDirStr.size());
+                currDirBuffer_.back() = '\0';
+
+                editDir_ = true;
+                setFocusToEditDir_ = true;
+            }
+        }
     }
 
     SameLine();
-
     if(SmallButton("*"))
     {
         UpdateFileRecords();
@@ -523,7 +598,6 @@ inline void ImGui::FileBrowser::Display()
     // browse files in a child window
 
     float reserveHeight = GetFrameHeightWithSpacing();
-    std::filesystem::path newDir; bool shouldSetNewDir = false;
     if(flags_ & ImGuiFileBrowserFlags_EnterNewFilename)
     {
         reserveHeight += GetFrameHeightWithSpacing();
@@ -614,7 +688,7 @@ inline void ImGui::FileBrowser::Display()
                     }
                     if(flags_ & ImGuiFileBrowserFlags_EnterNewFilename)
                     {
-                        const auto rscName = rsc.name.u8string();
+                        const auto rscName = u8StrToStr(rsc.name.u8string());
                         if(inputNameBuffer_.size() < rscName.size() + 1)
                         {
                             inputNameBuffer_.resize(rscName.size() + 1);
@@ -774,22 +848,8 @@ inline bool ImGui::FileBrowser::HasSelected() const noexcept
 
 inline bool ImGui::FileBrowser::SetCurrentDirectory(const std::filesystem::path &dir)
 {
-    try
-    {
-        SetCurrentDirectoryUncatched(dir);
-        return true;
-    }
-    catch(const std::exception &err)
-    {
-        statusStr_ = std::string("last error: ") + err.what();
-    }
-    catch(...)
-    {
-        statusStr_ = "last error: unknown";
-    }
-
-    SetCurrentDirectoryUncatched(defaultDirectory_);
-    return false;
+    const std::filesystem::path preferredFallback = this->GetCurrentDirectory();
+    return SetCurrentDirectoryInternal(dir, preferredFallback);
 }
 
 inline const std::filesystem::path &ImGui::FileBrowser::GetCurrentDirectory() const noexcept
@@ -984,8 +1044,43 @@ inline void ImGui::FileBrowser::SetCurrentDirectoryUncatched(const std::filesyst
     }
 }
 
-inline bool ImGui::FileBrowser::IsExtensionMatched(
-    const std::filesystem::path &_extension) const
+inline bool ImGui::FileBrowser::SetCurrentDirectoryInternal(
+    const std::filesystem::path &dir, const std::filesystem::path &preferredFallback)
+{
+    try
+    {
+        SetCurrentDirectoryUncatched(dir);
+        return true;
+    }
+    catch(const std::exception &err)
+    {
+        statusStr_ = std::string("error: ") + err.what();
+    }
+    catch(...)
+    {
+        statusStr_ = "unknown error";
+    }
+
+    if(preferredFallback != defaultDirectory_)
+    {
+        try
+        {
+            SetCurrentDirectoryUncatched(preferredFallback);
+        }
+        catch(...)
+        {
+            SetCurrentDirectoryUncatched(defaultDirectory_);
+        }
+    }
+    else
+    {
+        SetCurrentDirectoryUncatched(defaultDirectory_);
+    }
+
+    return false;
+}
+
+inline bool ImGui::FileBrowser::IsExtensionMatched(const std::filesystem::path &_extension) const
 {
 #ifdef _WIN32
     std::filesystem::path extension = ToLower(u8StrToStr(_extension.u8string()));
