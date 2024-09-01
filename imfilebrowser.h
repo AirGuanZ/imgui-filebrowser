@@ -759,7 +759,7 @@ inline void ImGui::FileBrowser::Display()
         PopItemWidth();
     }
 
-    if(!focusOnInputText)
+    if(!focusOnInputText && !editDir_)
     {
         const bool selectAll = (flags_ & ImGuiFileBrowserFlags_MultipleSelection) &&
                                IsKeyPressed(ImGuiKey_A) && (IsKeyDown(ImGuiKey_LeftCtrl) ||
