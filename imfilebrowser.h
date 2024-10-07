@@ -74,21 +74,21 @@ namespace ImGui
         bool HasSelected() const noexcept;
 
         // set current browsing directory
-        bool SetCurrentDirectory(const std::filesystem::path &dir = std::filesystem::current_path());
+        bool SetDirectory(const std::filesystem::path &dir = std::filesystem::current_path());
 
-        // legacy interface. use SetCurrentDirectory instead.
+        // legacy interface. use SetDirectory instead.
         bool SetPwd(const std::filesystem::path &dir = std::filesystem::current_path())
         {
-            return SetCurrentDirectory(dir);
+            return SetDirectory(dir);
         }
 
         // get current browsing directory
-        const std::filesystem::path &GetCurrentDirectory() const noexcept;
+        const std::filesystem::path &GetDirectory() const noexcept;
 
-        // legacy interface. use GetCurrentDirectory instead.
+        // legacy interface. use GetDirectory instead.
         const std::filesystem::path &GetPwd() const noexcept
         {
-            return GetCurrentDirectory();
+            return GetDirectory();
         }
 
         // returns selected filename. make sense only when HasSelected returns true
@@ -237,7 +237,7 @@ inline ImGui::FileBrowser::FileBrowser(ImGuiFileBrowserFlags flags, std::filesys
     }
 
     SetTitle("file browser");
-    SetCurrentDirectory(defaultDirectory_);
+    SetDirectory(defaultDirectory_);
 
     typeFilters_.clear();
     typeFilterIndex_ = 0;
@@ -461,7 +461,7 @@ inline void ImGui::FileBrowser::Display()
                 if(Selectable(selectableStr, selected) && !selected)
                 {
                     char newPwd[] = { driveCh, ':', '\\', '\0' };
-                    SetCurrentDirectory(newPwd);
+                    SetDirectory(newPwd);
                 }
             }
         }
@@ -515,7 +515,7 @@ inline void ImGui::FileBrowser::Display()
             }
 #endif
 
-            SetCurrentDirectory(dstDir);
+            SetDirectory(dstDir);
         }
 
         if(flags_ & ImGuiFileBrowserFlags_EditPathString)
@@ -740,7 +740,7 @@ inline void ImGui::FileBrowser::Display()
 
     if(shouldSetNewDir)
     {
-        SetCurrentDirectory(newDir);
+        SetDirectory(newDir);
     }
 
     if(flags_ & ImGuiFileBrowserFlags_EnterNewFilename)
@@ -846,13 +846,13 @@ inline bool ImGui::FileBrowser::HasSelected() const noexcept
     return isOk_;
 }
 
-inline bool ImGui::FileBrowser::SetCurrentDirectory(const std::filesystem::path &dir)
+inline bool ImGui::FileBrowser::SetDirectory(const std::filesystem::path &dir)
 {
-    const std::filesystem::path preferredFallback = this->GetCurrentDirectory();
+    const std::filesystem::path preferredFallback = this->GetDirectory();
     return SetCurrentDirectoryInternal(dir, preferredFallback);
 }
 
-inline const std::filesystem::path &ImGui::FileBrowser::GetCurrentDirectory() const noexcept
+inline const std::filesystem::path &ImGui::FileBrowser::GetDirectory() const noexcept
 {
     return currentDirectory_;
 }
@@ -1203,7 +1203,7 @@ inline std::filesystem::path ImGui::FileBrowser::u8StrToPath(const char *str)
     #define WIN32_LEAN_AND_MEAN
 #endif // #ifndef WIN32_LEAN_AND_MEAN
 
-#include <windows.h>
+#include <Windows.h>
 
 #ifdef IMGUI_FILEBROWSER_UNDEF_WIN32_LEAN_AND_MEAN
     #undef IMGUI_FILEBROWSER_UNDEF_WIN32_LEAN_AND_MEAN
