@@ -198,6 +198,7 @@ namespace ImGui
         std::string       openNewDirLabel_;
         std::vector<char> newDirNameBuffer_;
         std::vector<char> inputNameBuffer_;
+        std::string       customizedInputName_;
 
         bool              editDir_;
         bool              setFocusToEditDir_;
@@ -284,9 +285,10 @@ inline ImGui::FileBrowser &ImGui::FileBrowser::operator=(
     currentDirectory_ = copyFrom.currentDirectory_;
     fileRecords_      = copyFrom.fileRecords_;
 
-    openNewDirLabel_  = copyFrom.openNewDirLabel_;
-    newDirNameBuffer_ = copyFrom.newDirNameBuffer_;
-    inputNameBuffer_  = copyFrom.inputNameBuffer_;
+    openNewDirLabel_     = copyFrom.openNewDirLabel_;
+    newDirNameBuffer_    = copyFrom.newDirNameBuffer_;
+    inputNameBuffer_     = copyFrom.inputNameBuffer_;
+    customizedInputName_ = copyFrom.customizedInputName_;
 
     editDir_ = copyFrom.editDir_;
     currDirBuffer_ = copyFrom.currDirBuffer_;
@@ -328,6 +330,13 @@ inline void ImGui::FileBrowser::Open()
     statusStr_ = std::string();
     shouldOpen_ = true;
     shouldClose_ = false;
+    if((flags_ & ImGuiFileBrowserFlags_EnterNewFilename) && !customizedInputName_.empty())
+    {
+        inputNameBuffer_.resize(customizedInputName_.size() + 1);
+        std::memcpy(inputNameBuffer_.data(), customizedInputName_.data(), customizedInputName_.size());
+        inputNameBuffer_.back() = '\0';
+        selectedFilenames_ = { u8StrToPath(inputNameBuffer_.data()) };
+    }
 }
 
 inline void ImGui::FileBrowser::Close()
@@ -697,13 +706,6 @@ inline void ImGui::FileBrowser::Display()
                     }
                     rangeSelectionStart_ = rscIndex;
                 }
-                else
-                {
-                    if(!multiSelect)
-                    {
-                        selectedFilenames_.clear();
-                    }
-                }
             }
 
             if(IsItemClicked(0) && IsMouseDoubleClicked(0))
@@ -958,16 +960,8 @@ inline void ImGui::FileBrowser::SetCurrentTypeFilterIndex(int index)
 
 inline void ImGui::FileBrowser::SetInputName(std::string_view input)
 {
-    if(flags_ & ImGuiFileBrowserFlags_EnterNewFilename)
-    {
-        if(inputNameBuffer_.size() < input.size() + 1)
-        {
-            inputNameBuffer_.resize(input.size() + 1, '\0');
-        }
-        std::copy(input.begin(), input.end(), inputNameBuffer_.begin());
-        inputNameBuffer_[input.size()] = '\0';
-        selectedFilenames_ = { u8StrToPath(inputNameBuffer_.data()) };
-    }
+    assert(flags_ & ImGuiFileBrowserFlags_EnterNewFilename);
+    customizedInputName_ = input;
 }
 
 inline std::string ImGui::FileBrowser::ToLower(const std::string &s)
@@ -1037,9 +1031,21 @@ inline void ImGui::FileBrowser::SetCurrentDirectoryUncatched(const std::filesyst
 {
     currentDirectory_ = absolute(pwd);
     UpdateFileRecords();
-    selectedFilenames_.clear();
-    if(flags_ & ImGuiFileBrowserFlags_EnterNewFilename)
+
+    bool shouldClearInputNameBuffer = true;
+
+    if((flags_ & ImGuiFileBrowserFlags_EnterNewFilename) &&
+       selectedFilenames_.size() == 1 &&
+       !customizedInputName_.empty() &&
+       !inputNameBuffer_.empty() &&
+       std::strcmp(inputNameBuffer_.data(), customizedInputName_.data()) == 0)
     {
+        shouldClearInputNameBuffer = false;
+    }
+
+    if(shouldClearInputNameBuffer)
+    {
+        selectedFilenames_.clear();
         inputNameBuffer_[0] = '\0';
     }
 }
