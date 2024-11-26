@@ -152,6 +152,8 @@ namespace ImGui
 
         void ClearRangeSelectionState();
 
+        static void AssignToArrayStyleString(std::vector<char> &arr, std::string_view content);
+
         static int ExpandInputBuffer(ImGuiInputTextCallbackData *callbackData);
 
 #ifdef _WIN32
@@ -231,10 +233,6 @@ inline ImGui::FileBrowser::FileBrowser(ImGuiFileBrowserFlags flags, std::filesys
     if(flags_ & ImGuiFileBrowserFlags_CreateNewDir)
     {
         newDirNameBuffer_.resize(8, '\0');
-    }
-    if(flags_ & ImGuiFileBrowserFlags_EnterNewFilename)
-    {
-        inputNameBuffer_.resize(8, '\0');
     }
 
     SetTitle("file browser");
@@ -332,9 +330,7 @@ inline void ImGui::FileBrowser::Open()
     shouldClose_ = false;
     if((flags_ & ImGuiFileBrowserFlags_EnterNewFilename) && !customizedInputName_.empty())
     {
-        inputNameBuffer_.resize(customizedInputName_.size() + 1);
-        std::memcpy(inputNameBuffer_.data(), customizedInputName_.data(), customizedInputName_.size());
-        inputNameBuffer_.back() = '\0';
+        AssignToArrayStyleString(inputNameBuffer_, customizedInputName_);
         selectedFilenames_ = { u8StrToPath(inputNameBuffer_.data()) };
     }
 }
@@ -563,7 +559,7 @@ inline void ImGui::FileBrowser::Display()
             }
         }
 
-        if((flags_ & ImGuiFileBrowserFlags_EnterNewFilename) && inputNameBuffer_[0])
+        if((flags_ & ImGuiFileBrowserFlags_EnterNewFilename) && !inputNameBuffer_.empty() && inputNameBuffer_[0])
         {
             newSelectedFilenames.insert(u8StrToPath(inputNameBuffer_.data()));
         }
@@ -682,7 +678,7 @@ inline void ImGui::FileBrowser::Display()
                     }
                     if(flags_ & ImGuiFileBrowserFlags_EnterNewFilename)
                     {
-                        inputNameBuffer_[0] = '\0';
+                        AssignToArrayStyleString(inputNameBuffer_, "");
                     }
                 }
                 else if(canSelect)
@@ -698,11 +694,7 @@ inline void ImGui::FileBrowser::Display()
                     if(flags_ & ImGuiFileBrowserFlags_EnterNewFilename)
                     {
                         const auto rscName = u8StrToStr(rsc.name.u8string());
-                        if(inputNameBuffer_.size() < rscName.size() + 1)
-                        {
-                            inputNameBuffer_.resize(rscName.size() + 1);
-                        }
-                        std::memcpy(inputNameBuffer_.data(), rscName.data(), rscName.size() + 1);
+                        AssignToArrayStyleString(inputNameBuffer_, rscName);
                     }
                     rangeSelectionStart_ = rscIndex;
                 }
@@ -749,6 +741,11 @@ inline void ImGui::FileBrowser::Display()
     {
         PushID(this);
         ScopeGuard popTextID([] { PopID(); });
+
+        if(inputNameBuffer_.empty())
+        {
+            inputNameBuffer_.resize(1, '\0');
+        }
 
         PushItemWidth(-1);
         if(InputText(
@@ -890,9 +887,9 @@ inline std::vector<std::filesystem::path> ImGui::FileBrowser::GetMultiSelected()
 inline void ImGui::FileBrowser::ClearSelected()
 {
     selectedFilenames_.clear();
-    if(flags_ & ImGuiFileBrowserFlags_EnterNewFilename)
+    if((flags_ & ImGuiFileBrowserFlags_EnterNewFilename))
     {
-        inputNameBuffer_[0] = '\0';
+        AssignToArrayStyleString(inputNameBuffer_, "");
     }
     isOk_ = false;
 }
@@ -960,7 +957,8 @@ inline void ImGui::FileBrowser::SetCurrentTypeFilterIndex(int index)
 
 inline void ImGui::FileBrowser::SetInputName(std::string_view input)
 {
-    assert(flags_ & ImGuiFileBrowserFlags_EnterNewFilename);
+    assert((flags_ & ImGuiFileBrowserFlags_EnterNewFilename) &&
+           "SetInputName can only be called when ImGuiFileBrowserFlags_EnterNewFilename is enabled");
     customizedInputName_ = input;
 }
 
@@ -1046,7 +1044,7 @@ inline void ImGui::FileBrowser::SetCurrentDirectoryUncatched(const std::filesyst
     if(shouldClearInputNameBuffer)
     {
         selectedFilenames_.clear();
-        inputNameBuffer_[0] = '\0';
+        AssignToArrayStyleString(inputNameBuffer_, "");
     }
 }
 
@@ -1145,6 +1143,25 @@ inline void ImGui::FileBrowser::ClearRangeSelectionState()
             break;
         }
     }
+}
+
+inline void ImGui::FileBrowser::AssignToArrayStyleString(std::vector<char> &arr, std::string_view content)
+{
+    if(content.empty())
+    {
+        if(!arr.empty())
+        {
+            arr[0] = '\0';
+        }
+        return;
+    }
+
+    if(arr.size() < content.size() + 1)
+    {
+        arr.resize(content.size() + 1);
+    }
+    std::memcpy(arr.data(), content.data(), content.size());
+    arr[content.size()] = '\0';
 }
 
 inline int ImGui::FileBrowser::ExpandInputBuffer(ImGuiInputTextCallbackData *callbackData)
