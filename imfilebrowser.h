@@ -979,7 +979,6 @@ inline void ImGui::FileBrowser::UpdateFileRecords()
     for(auto &p : std::filesystem::directory_iterator(currentDirectory_))
     {
         FileRecord rcd;
-
         try
         {
             if(p.is_regular_file())
@@ -1012,15 +1011,57 @@ inline void ImGui::FileBrowser::UpdateFileRecords()
             }
             continue;
         }
-
         fileRecords_.push_back(rcd);
     }
 
-    std::sort(
-        fileRecords_.begin(), fileRecords_.end(), [](const FileRecord &L, const FileRecord &R)
+    // The default lexicographical order does not meet our sorting requirements.
+    // We want [b0, a0, A1] to be sorted into something like [a0, A1, b0] instead of [a0, b0, A1].
+    // Therefore, here we compute a custom key for each filename for sorting.
+    if(fileRecords_.size() > 2)
+    {
+        std::vector<std::vector<uint32_t>> keys;
+        keys.reserve(fileRecords_.size());
+        for(auto &fileRecord : fileRecords_)
         {
-            return (L.isDir ^ R.isDir) ? L.isDir : (L.name < R.name);
-        });
+            const auto name = u8StrToStr(fileRecord.name.u8string());
+            auto& key = keys.emplace_back();
+            key.reserve(name.size() + 1);
+            key.emplace_back(!fileRecord.isDir);
+            for(char c : name)
+            {
+                if('A' <= c && c <= 'Z')
+                {
+                    key.emplace_back(2 * (c + 'a' - 'A') + 1);
+                }
+                else
+                {
+                    key.emplace_back(2 * c);
+                }
+            }
+        }
+
+        std::vector<uint32_t> fileRecordRemapIndices;
+        fileRecordRemapIndices.reserve(fileRecords_.size());
+        for(uint32_t i = 0; i < fileRecords_.size(); ++i)
+        {
+            fileRecordRemapIndices.push_back(i);
+        }
+
+        std::sort(
+            fileRecordRemapIndices.begin() + 1, fileRecordRemapIndices.end(), [&](uint32_t li, uint32_t ri)
+            {
+                return keys[li] < keys[ri];
+            });
+
+        std::vector<FileRecord> remappedFileRecords;
+        remappedFileRecords.reserve(fileRecords_.size());
+        for(const uint32_t index : fileRecordRemapIndices)
+        {
+            remappedFileRecords.emplace_back(std::move(fileRecords_[index]));
+        }
+
+        fileRecords_ = std::move(remappedFileRecords);
+    }
 
     ClearRangeSelectionState();
 }
