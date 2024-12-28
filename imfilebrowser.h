@@ -14,7 +14,7 @@
 #   error "include imgui.h before this header"
 #endif
 
-using ImGuiFileBrowserFlags = int;
+using ImGuiFileBrowserFlags = std::uint32_t;
 
 enum ImGuiFileBrowserFlags_ : std::uint32_t
 {
