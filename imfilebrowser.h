@@ -140,6 +140,8 @@ namespace ImGui
 
         static std::string ToLower(const std::string &s);
 
+        void ToolTip(const std::string_view &s);
+
         void UpdateFileRecords();
 
         void SetCurrentDirectoryUncatched(const std::filesystem::path &pwd);
@@ -537,6 +539,10 @@ inline void ImGui::FileBrowser::Display()
                 editDir_ = true;
                 setFocusToEditDir_ = true;
             }
+            else
+            {
+                ToolTip("Edit the current path");
+            }
         }
     }
 
@@ -564,6 +570,10 @@ inline void ImGui::FileBrowser::Display()
             newSelectedFilenames.insert(u8StrToPath(inputNameBuffer_.data()));
         }
     }
+    else
+    {
+        ToolTip("Refresh");
+    }
 
     bool focusOnInputText = false;
     if(flags_ & ImGuiFileBrowserFlags_CreateNewDir)
@@ -573,6 +583,10 @@ inline void ImGui::FileBrowser::Display()
         {
             OpenPopup(openNewDirLabel_.c_str());
             newDirNameBuffer_[0] = '\0';
+        }
+        else
+        {
+            ToolTip("Create a new directory");
         }
 
         if(BeginPopup(openNewDirLabel_.c_str()))
@@ -970,6 +984,15 @@ inline std::string ImGui::FileBrowser::ToLower(const std::string &s)
         c = static_cast<char>(std::tolower(c));
     }
     return ret;
+}
+
+inline void ImGui::FileBrowser::ToolTip(const std::string_view &s)
+{
+    if (!ImGui::IsItemHovered())
+    {
+        return;
+    }
+    ImGui::SetTooltip("%s", s.data());
 }
 
 inline void ImGui::FileBrowser::UpdateFileRecords()
