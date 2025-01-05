@@ -633,7 +633,14 @@ inline void ImGui::FileBrowser::Display()
             }
 
             const bool selected = selectedFilenames_.find(rsc.name) != selectedFilenames_.end();
-            if(Selectable(rsc.showName.c_str(), selected, ImGuiSelectableFlags_NoAutoClosePopups))
+            
+#if IMGUI_VERSION_NUM >= 19100
+            const ImGuiSelectableFlags selectableFlag = ImGuiSelectableFlags_NoAutoClosePopups;
+#else
+            const ImGuiSelectableFlags selectableFlag = ImGuiSelectableFlags_DontClosePopups;
+#endif
+
+            if(Selectable(rsc.showName.c_str(), selected, selectableFlag))
             {
                 const bool wantDir = flags_ & ImGuiFileBrowserFlags_SelectDirectory;
                 const bool canSelect = rsc.name != ".." && rsc.isDir == wantDir;
