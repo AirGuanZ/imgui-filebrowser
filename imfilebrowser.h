@@ -234,7 +234,7 @@ inline ImGui::FileBrowser::FileBrowser(ImGuiFileBrowserFlags flags, std::filesys
            "'EnterNewFilename' doesn't work when 'SelectDirectory' is enabled");
     if(flags_ & ImGuiFileBrowserFlags_CreateNewDir)
     {
-        newDirNameBuffer_.resize(8, '\0');
+        newDirNameBuffer_.resize(32, '\0');
     }
 
     SetTitle("file browser");
