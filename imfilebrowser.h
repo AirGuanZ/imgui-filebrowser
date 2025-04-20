@@ -14,7 +14,7 @@
 #   error "include imgui.h before this header"
 #endif
 
-using ImGuiFileBrowserFlags = int;
+using ImGuiFileBrowserFlags = std::uint32_t;
 
 enum ImGuiFileBrowserFlags_ : std::uint32_t
 {
@@ -140,6 +140,8 @@ namespace ImGui
 
         static std::string ToLower(const std::string &s);
 
+        void ToolTip(const std::string_view &s);
+
         void UpdateFileRecords();
 
         void SetCurrentDirectoryUncatched(const std::filesystem::path &pwd);
@@ -232,7 +234,7 @@ inline ImGui::FileBrowser::FileBrowser(ImGuiFileBrowserFlags flags, std::filesys
            "'EnterNewFilename' doesn't work when 'SelectDirectory' is enabled");
     if(flags_ & ImGuiFileBrowserFlags_CreateNewDir)
     {
-        newDirNameBuffer_.resize(8, '\0');
+        newDirNameBuffer_.resize(32, '\0');
     }
 
     SetTitle("file browser");
@@ -537,6 +539,10 @@ inline void ImGui::FileBrowser::Display()
                 editDir_ = true;
                 setFocusToEditDir_ = true;
             }
+            else
+            {
+                ToolTip("Edit the current path");
+            }
         }
     }
 
@@ -564,6 +570,10 @@ inline void ImGui::FileBrowser::Display()
             newSelectedFilenames.insert(u8StrToPath(inputNameBuffer_.data()));
         }
     }
+    else
+    {
+        ToolTip("Refresh");
+    }
 
     bool focusOnInputText = false;
     if(flags_ & ImGuiFileBrowserFlags_CreateNewDir)
@@ -573,6 +583,10 @@ inline void ImGui::FileBrowser::Display()
         {
             OpenPopup(openNewDirLabel_.c_str());
             newDirNameBuffer_[0] = '\0';
+        }
+        else
+        {
+            ToolTip("Create a new directory");
         }
 
         if(BeginPopup(openNewDirLabel_.c_str()))
@@ -633,7 +647,14 @@ inline void ImGui::FileBrowser::Display()
             }
 
             const bool selected = selectedFilenames_.find(rsc.name) != selectedFilenames_.end();
-            if(Selectable(rsc.showName.c_str(), selected, ImGuiSelectableFlags_DontClosePopups))
+            
+#if IMGUI_VERSION_NUM >= 19100
+            const ImGuiSelectableFlags selectableFlag = ImGuiSelectableFlags_NoAutoClosePopups;
+#else
+            const ImGuiSelectableFlags selectableFlag = ImGuiSelectableFlags_DontClosePopups;
+#endif
+
+            if(Selectable(rsc.showName.c_str(), selected, selectableFlag))
             {
                 const bool wantDir = flags_ & ImGuiFileBrowserFlags_SelectDirectory;
                 const bool canSelect = rsc.name != ".." && rsc.isDir == wantDir;
@@ -970,6 +991,15 @@ inline std::string ImGui::FileBrowser::ToLower(const std::string &s)
         c = static_cast<char>(std::tolower(c));
     }
     return ret;
+}
+
+inline void ImGui::FileBrowser::ToolTip(const std::string_view &s)
+{
+    if (!ImGui::IsItemHovered())
+    {
+        return;
+    }
+    ImGui::SetTooltip("%s", s.data());
 }
 
 inline void ImGui::FileBrowser::UpdateFileRecords()
