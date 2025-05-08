@@ -1285,45 +1285,13 @@ inline std::filesystem::path ImGui::FileBrowser::u8StrToPath(const char *str)
 
 #ifdef _WIN32
 
-#ifndef _INC_WINDOWS
-
-#ifndef NOMINMAX
-    #define IMGUI_FILEBROWSER_UNDEF_NOMINMAX
-    #define NOMINMAX
-#endif
-
-#ifndef WIN32_LEAN_AND_MEAN
-    #define IMGUI_FILEBROWSER_UNDEF_WIN32_LEAN_AND_MEAN
-    #define WIN32_LEAN_AND_MEAN
-#endif // #ifndef WIN32_LEAN_AND_MEAN
-
-#include <Windows.h>
-
-#ifdef IMGUI_FILEBROWSER_UNDEF_WIN32_LEAN_AND_MEAN
-    #undef IMGUI_FILEBROWSER_UNDEF_WIN32_LEAN_AND_MEAN
-    #undef WIN32_LEAN_AND_MEAN
-#endif // #ifdef IMGUI_FILEBROWSER_UNDEF_WIN32_LEAN_AND_MEAN
-
-#ifdef IMGUI_FILEBROWSER_UNDEF_NOMINMAX
-    #undef IMGUI_FILEBROWSER_UNDEF_NOMINMAX
-    #undef NOMINMAX
-#endif // #ifdef IMGUI_FILEBROWSER_UNDEF_NOMINMAX
-
-#endif // #ifdef _INC_WINDOWS
-
 inline std::uint32_t ImGui::FileBrowser::GetDrivesBitMask()
 {
-    const DWORD mask = GetLogicalDrives();
     std::uint32_t ret = 0;
     for(int i = 0; i < 26; ++i)
     {
-        if(!(mask & (1 << i)))
-        {
-            continue;
-        }
         const char rootName[4] = { static_cast<char>('A' + i), ':', '\\', '\0' };
-        const UINT type = GetDriveTypeA(rootName);
-        if(type == DRIVE_REMOVABLE || type == DRIVE_FIXED ||  type == DRIVE_REMOTE)
+        if(std::filesystem::exists(rootName))
         {
             ret |= (1 << i);
         }
