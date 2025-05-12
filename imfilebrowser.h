@@ -4,7 +4,6 @@
 #include <array>
 #include <cctype>
 #include <cstring>
-#include <system_error>
 #include <filesystem>
 #include <set>
 #include <string>
@@ -1293,22 +1292,18 @@ inline std::filesystem::path ImGui::FileBrowser::u8StrToPath(const char *str)
 inline std::uint32_t ImGui::FileBrowser::GetDrivesBitMask()
 {
     std::uint32_t ret = 0;
-    std::error_code ec = {};
     for(int i = 0; i < 26; ++i)
     {
         const char rootName[4] = { static_cast<char>('A' + i), ':', '\\', '\0' };
-        const bool found = std::filesystem::exists(rootName, ec);
-        if(ec)
-        {
-            // optional you could log this error if you want.
-            // std::cerr << "Error in std::filesystem::exists - " << __FILE__ << ":" << __LINE__ << " - "
-            //           << error_code.value() << ": " << error_code.message() << " - "
-            //           << "Path: " << rootName << std::endl;
-            ec.clear();
+        try{
+            if (std::filesystem::exists(rootName))
+            {
+                ret |= (1 << i);
+            }
         }
-        else if (found)
+        catch (const std::filesystem::filesystem_error &)
         {
-            ret |= (1 << i);
+            // Ignore invalid paths or inaccessible drives, e.g., empty CD drives or network shares
         }
     }
     return ret;
