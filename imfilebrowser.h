@@ -550,6 +550,10 @@ inline void ImGui::FileBrowser::Display()
     SameLine();
     if(SmallButton("*"))
     {
+#ifdef _WIN32
+        drives_ = GetDrivesBitMask();
+#endif
+
         UpdateFileRecords();
 
         std::set<std::filesystem::path> newSelectedFilenames;
