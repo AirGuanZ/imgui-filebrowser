@@ -4,6 +4,7 @@
 #include <array>
 #include <cctype>
 #include <cstring>
+#include <system_error>
 #include <filesystem>
 #include <set>
 #include <string>
@@ -549,6 +550,10 @@ inline void ImGui::FileBrowser::Display()
     SameLine();
     if(SmallButton("*"))
     {
+#ifdef _WIN32
+        drives_ = GetDrivesBitMask();
+#endif
+
         UpdateFileRecords();
 
         std::set<std::filesystem::path> newSelectedFilenames;
@@ -1288,10 +1293,20 @@ inline std::filesystem::path ImGui::FileBrowser::u8StrToPath(const char *str)
 inline std::uint32_t ImGui::FileBrowser::GetDrivesBitMask()
 {
     std::uint32_t ret = 0;
+    std::error_code ec = {};
     for(int i = 0; i < 26; ++i)
     {
         const char rootName[4] = { static_cast<char>('A' + i), ':', '\\', '\0' };
-        if(std::filesystem::exists(rootName))
+        const bool found = std::filesystem::exists(rootName, ec);
+        if(ec)
+        {
+            // optional you could log this error if you want.
+            // std::cerr << "Error in std::filesystem::exists - " << __FILE__ << ":" << __LINE__ << " - "
+            //           << error_code.value() << ": " << error_code.message() << " - "
+            //           << "Path: " << rootName << std::endl;
+            ec.clear();
+        }
+        else if (found)
         {
             ret |= (1 << i);
         }
