@@ -549,6 +549,10 @@ inline void ImGui::FileBrowser::Display()
     SameLine();
     if(SmallButton("*"))
     {
+#ifdef _WIN32
+        drives_ = GetDrivesBitMask();
+#endif
+
         UpdateFileRecords();
 
         std::set<std::filesystem::path> newSelectedFilenames;
@@ -1291,9 +1295,15 @@ inline std::uint32_t ImGui::FileBrowser::GetDrivesBitMask()
     for(int i = 0; i < 26; ++i)
     {
         const char rootName[4] = { static_cast<char>('A' + i), ':', '\\', '\0' };
-        if(std::filesystem::exists(rootName))
+        try{
+            if (std::filesystem::exists(rootName))
+            {
+                ret |= (1 << i);
+            }
+        }
+        catch (const std::filesystem::filesystem_error &)
         {
-            ret |= (1 << i);
+            // Ignore invalid paths or inaccessible drives, e.g., empty CD drives or network shares
         }
     }
     return ret;
