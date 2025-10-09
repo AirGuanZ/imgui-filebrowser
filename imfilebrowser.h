@@ -80,6 +80,13 @@ namespace ImGui
         // set current browsing directory
         bool SetDirectory(const std::filesystem::path &dir = std::filesystem::current_path());
 
+        enum class ExtensionSlot {
+            Footer,
+            _Count
+        };
+
+        std::string AddExtension(ExtensionSlot slot, std::function<void(FileBrowser&)> cb);
+
         // legacy interface. use SetDirectory instead.
         bool SetPwd(const std::filesystem::path &dir = std::filesystem::current_path())
         {
@@ -142,6 +149,15 @@ namespace ImGui
             std::filesystem::path extension;
         };
 
+        struct Extension
+        {
+            std::string id; // generated id returned to caller
+            std::function<void(FileBrowser& fb)> callback;
+            bool enabled = true;
+        };
+
+        void RenderExtensions(ExtensionSlot slot);
+
         static std::string ToLower(const std::string &s);
 
         void ToolTip(const std::string_view &s);
@@ -181,6 +197,9 @@ namespace ImGui
         int posY_;
         ImGuiFileBrowserFlags flags_;
         std::filesystem::path defaultDirectory_;
+
+        std::array<std::vector<Extension>, static_cast<size_t>(ExtensionSlot::_Count)> extensions_;
+        uint64_t nextExtensionId_ = 1;
 
         std::string title_;
         std::string openLabel_;
@@ -352,6 +371,41 @@ inline void ImGui::FileBrowser::Close()
 inline bool ImGui::FileBrowser::IsOpened() const noexcept
 {
     return isOpened_;
+}
+
+std::string ImGui::FileBrowser::AddExtension(ImGui::FileBrowser::ExtensionSlot slot, std::function<void(FileBrowser&)> cb) {
+    if (!cb) return std::string();
+
+    // generate id
+    const uint64_t idNum = nextExtensionId_++;
+    std::string id = "ext:" + std::to_string(idNum);
+
+    Extension ext;
+    ext.id = id;
+    ext.callback = std::move(cb);
+    ext.enabled = true;
+
+    auto& vec = extensions_.at(static_cast<size_t>(slot));
+    vec.emplace_back(std::move(ext));
+
+    return id;
+}
+
+void ImGui::FileBrowser::RenderExtensions(ImGui::FileBrowser::ExtensionSlot slot)
+{
+    auto& vec = extensions_.at(static_cast<size_t>(slot));
+    for (const auto& ext : vec)
+    {
+        if (!ext.enabled || !ext.callback) continue;
+
+        // localize layout & IDs so extension does not break surrounding layout
+        ImGui::PushID(ext.id.c_str());
+        ImGui::BeginGroup();
+        // safe call: ext gets reference to this FileBrowser
+        ext.callback(*this);
+        ImGui::EndGroup();
+        ImGui::PopID();
+    }
 }
 
 inline void ImGui::FileBrowser::Display()
@@ -624,7 +678,7 @@ inline void ImGui::FileBrowser::Display()
 
     // browse files in a child window
 
-    float reserveHeight = GetFrameHeightWithSpacing();
+    float reserveHeight = GetFrameHeightWithSpacing() * 2.0f;
     if(flags_ & ImGuiFileBrowserFlags_EnterNewFilename)
     {
         reserveHeight += GetFrameHeightWithSpacing();
@@ -885,6 +939,8 @@ inline void ImGui::FileBrowser::Display()
         }
         PopItemWidth();
     }
+
+    RenderExtensions(ImGui::FileBrowser::ExtensionSlot::Footer);
 }
 
 inline bool ImGui::FileBrowser::HasSelected() const noexcept
