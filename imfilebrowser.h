@@ -10,6 +10,10 @@
 #include <string_view>
 #include <vector>
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 #ifndef IMGUI_VERSION
 #   error "include imgui.h before this header"
 #endif
@@ -1326,22 +1330,7 @@ inline std::filesystem::path ImGui::FileBrowser::u8StrToPath(const char *str)
 
 inline std::uint32_t ImGui::FileBrowser::GetDrivesBitMask()
 {
-    std::uint32_t ret = 0;
-    for(int i = 0; i < 26; ++i)
-    {
-        const char rootName[4] = { static_cast<char>('A' + i), ':', '\\', '\0' };
-        try{
-            if (std::filesystem::exists(rootName))
-            {
-                ret |= (1 << i);
-            }
-        }
-        catch (const std::filesystem::filesystem_error &)
-        {
-            // Ignore invalid paths or inaccessible drives, e.g., empty CD drives or network shares
-        }
-    }
-    return ret;
+    return GetLogicalDrives();
 }
 
 #endif
