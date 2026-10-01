@@ -82,6 +82,9 @@ namespace ImGui
             return SetDirectory(dir);
         }
 
+        // Set flags
+        void SetFlags(ImGuiFileBrowserFlags flags);
+
         // get current browsing directory
         const std::filesystem::path &GetDirectory() const noexcept;
 
@@ -892,6 +895,11 @@ inline bool ImGui::FileBrowser::SetDirectory(const std::filesystem::path &dir)
 {
     const std::filesystem::path preferredFallback = this->GetDirectory();
     return SetCurrentDirectoryInternal(dir, preferredFallback);
+}
+
+inline void ImGui::FileBrowser::SetFlags(ImGuiFileBrowserFlags flags)
+{
+    flags_ = flags;
 }
 
 inline const std::filesystem::path &ImGui::FileBrowser::GetDirectory() const noexcept
